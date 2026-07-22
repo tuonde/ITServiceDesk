@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ITServiceDesk.API/ITServiceDesk.API.csproj" />
+  <Project Path="ITServiceDesk.Core/ITServiceDesk.Core.csproj" />
+  <Project Path="ITServiceDesk.Data/ITServiceDesk.Data.csproj" />
+  <Project Path="ITServiceDesk.Service/ITServiceDesk.Service.csproj" />
+</Solution>
