@@ -3,6 +3,8 @@ using ITServiceDesk.Core.Entities;
 using ITServiceDesk.Core.Interfaces.Repositories;
 using ITServiceDesk.Service.DTOs.Comments;
 using ITServiceDesk.Service.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using ITServiceDesk.Service.Hubs;
 
 namespace ITServiceDesk.Service.Services;
 
@@ -10,11 +12,13 @@ public class CommentManager : ICommentService
 {
     private readonly IRepository<Comment> _repository;
     private readonly IMapper _mapper;
+    private readonly IHubContext<TicketHub> _hubContext;
 
-    public CommentManager(IRepository<Comment> repository, IMapper mapper)
+    public CommentManager(IRepository<Comment> repository, IMapper mapper, IHubContext<TicketHub> hubContext)
     {
         _repository = repository;
         _mapper = mapper;
+        _hubContext = hubContext;
     }
 
     public async Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId)
@@ -29,6 +33,11 @@ public class CommentManager : ICommentService
         var comment = _mapper.Map<Comment>(dto);
         await _repository.AddAsync(comment);
         await _repository.SaveChangesAsync();
+
+        // SignalR Notification
+        string message = $"Bilet #{comment.TicketId} için yeni bir yorum yapıldı!";
+        await _hubContext.Clients.All.SendAsync("ReceiveCommentNotification", comment.TicketId, message);
+
         return _mapper.Map<CommentResponseDto>(comment);
     }
 

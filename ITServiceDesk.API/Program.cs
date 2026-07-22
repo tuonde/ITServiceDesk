@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using ITServiceDesk.Service.Hubs;
+using ITServiceDesk.Service.Workers;
 using Microsoft.AspNetCore.Identity;
 using ITServiceDesk.Core.Entities;
 using Microsoft.OpenApi.Models;
@@ -44,6 +46,9 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+builder.Services.AddMemoryCache();
+builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<ITServiceDeskDbContext>(options =>
 {
@@ -98,6 +103,9 @@ builder.Services.AddScoped<INotificationService, NotificationManager>();
 builder.Services.AddScoped<IAuthService, AuthManager>();
 builder.Services.AddHttpContextAccessor();
 
+// Background Workers
+builder.Services.AddHostedService<SlaEscalationWorker>();
+
 // Mappings & Validations
 builder.Services.AddAutoMapper(config =>
 {
@@ -114,7 +122,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Dosya yükleme (Uploads) klasörü için dışarıya statik dosya erişimini açıyoruz
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+app.MapHub<TicketHub>("/ticketHub");
+
 app.Run();

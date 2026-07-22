@@ -4,6 +4,7 @@ using ITServiceDesk.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ITServiceDesk.Data.Migrations
 {
     [DbContext(typeof(ITServiceDeskDbContext))]
-    partial class ITServiceDeskDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722072804_MakeDepartmentNullable")]
+    partial class MakeDepartmentNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -189,7 +192,7 @@ namespace ITServiceDesk.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("UserId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -327,22 +330,13 @@ namespace ITServiceDesk.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsEscalated")
-                        .HasColumnType("bit");
-
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
                     b.Property<Guid>("RequesterId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ResolutionDueDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ResponseDueDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
@@ -535,7 +529,8 @@ namespace ITServiceDesk.Data.Migrations
                     b.HasOne("ITServiceDesk.Core.Entities.AppUser", "User")
                         .WithMany("AuditLogs")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Ticket");
 

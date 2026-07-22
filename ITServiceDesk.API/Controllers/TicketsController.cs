@@ -20,14 +20,14 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] TicketFilterDto filter)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         _ = Guid.TryParse(userIdClaim, out var userId);
         var isAdmin = User.IsInRole("Admin");
 
-        var result = await _ticketService.GetAllAsync(userId, isAdmin);
-        return Ok(ApiResponse<IEnumerable<TicketResponseDto>>.Success(result));
+        var result = await _ticketService.GetAllAsync(filter, userId, isAdmin);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -43,6 +43,12 @@ public class TicketsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(TicketCreateDto dto)
     {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            dto.RequesterId = userId;
+        }
+
         var result = await _ticketService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, ApiResponse<TicketResponseDto>.Success(result, "Ticket oluşturuldu."));
     }

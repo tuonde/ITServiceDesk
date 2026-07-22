@@ -8,7 +8,7 @@ public class AuditLog : BaseEntity
     public string? IPAddress { get; set; }
     
     // Navigation Properties
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
     public AppUser? User { get; set; }
     
     public Guid? TicketId { get; set; }

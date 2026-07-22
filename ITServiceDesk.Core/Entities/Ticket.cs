@@ -13,6 +13,11 @@ public class Ticket : BaseEntity
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
     
+    // SLA Fields
+    public DateTime? ResponseDueDate { get; set; }
+    public DateTime? ResolutionDueDate { get; set; }
+    public bool IsEscalated { get; set; } = false;
+    
     // Navigation Properties
     public Guid RequesterId { get; set; }
     public AppUser? Requester { get; set; }
@@ -20,7 +25,7 @@ public class Ticket : BaseEntity
     public Guid? AssigneeId { get; set; }
     public AppUser? Assignee { get; set; }
     
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public Department? Department { get; set; }
     
     public ICollection<Comment> Comments { get; set; } = [];
