@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
+using ITServiceDesk.Core.Entities;
+using Microsoft.AspNetCore.Identity;
+
 namespace ITServiceDesk.API.Controllers;
 
 [Authorize]
@@ -13,10 +16,12 @@ namespace ITServiceDesk.API.Controllers;
 public class TicketsController : ControllerBase
 {
     private readonly ITicketService _ticketService;
+    private readonly UserManager<AppUser> _userManager;
 
-    public TicketsController(ITicketService ticketService)
+    public TicketsController(ITicketService ticketService, UserManager<AppUser> userManager)
     {
         _ticketService = ticketService;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -47,6 +52,15 @@ public class TicketsController : ControllerBase
         if (Guid.TryParse(userIdClaim, out var userId))
         {
             dto.RequesterId = userId;
+            
+            if (dto.DepartmentId == null)
+            {
+                var user = await _userManager.FindByIdAsync(userIdClaim);
+                if (user != null)
+                {
+                    dto.DepartmentId = user.DepartmentId;
+                }
+            }
         }
 
         var result = await _ticketService.CreateAsync(dto);
@@ -59,8 +73,31 @@ public class TicketsController : ControllerBase
         if (id != dto.Id)
             return BadRequest(ApiResponse<TicketResponseDto>.Fail("ID uyuşmazlığı."));
 
-        var result = await _ticketService.UpdateAsync(dto);
-        return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket güncellendi."));
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        _ = Guid.TryParse(userIdClaim, out var userId);
+        var isAdmin = User.IsInRole("Admin");
+
+        try
+        {
+            var existingTicket = await _ticketService.GetByIdAsync(id);
+            if (existingTicket == null)
+                return NotFound(ApiResponse<TicketResponseDto>.Fail("Ticket bulunamadı."));
+
+            if (!isAdmin)
+            {
+                if (existingTicket.RequesterId != userId)
+                    return Forbid();
+                if (existingTicket.Status != ITServiceDesk.Core.Enums.TicketStatus.Open)
+                    return BadRequest(ApiResponse<TicketResponseDto>.Fail("Sadece açık durumdaki biletleri güncelleyebilirsiniz."));
+            }
+
+            var result = await _ticketService.UpdateAsync(dto);
+            return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket güncellendi."));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<TicketResponseDto>.Fail($"Update failed: {ex.Message} - Inner: {ex.InnerException?.Message} - Trace: {ex.StackTrace}"));
+        }
     }
 
     [HttpDelete("{id}")]

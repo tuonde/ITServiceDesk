@@ -264,6 +264,74 @@ namespace ITServiceDesk.Data.Migrations
                     b.ToTable("Departments");
                 });
 
+            modelBuilder.Entity("ITServiceDesk.Core.Entities.Device", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("Devices");
+                });
+
+            modelBuilder.Entity("ITServiceDesk.Core.Entities.DeviceCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DeviceCategories");
+                });
+
             modelBuilder.Entity("ITServiceDesk.Core.Entities.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -302,6 +370,39 @@ namespace ITServiceDesk.Data.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("ITServiceDesk.Core.Entities.SystemSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AppName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PasswordMinLength")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("PasswordRequireUppercase")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SessionTimeoutMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemSettings");
+                });
+
             modelBuilder.Entity("ITServiceDesk.Core.Entities.Ticket", b =>
                 {
                     b.Property<Guid>("Id")
@@ -324,6 +425,9 @@ namespace ITServiceDesk.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -338,6 +442,9 @@ namespace ITServiceDesk.Data.Migrations
 
                     b.Property<DateTime?>("ResolutionDueDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolutionReport")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime2");
@@ -361,6 +468,8 @@ namespace ITServiceDesk.Data.Migrations
                     b.HasIndex("AssigneeId");
 
                     b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DeviceId");
 
                     b.HasIndex("RequesterId");
 
@@ -561,6 +670,23 @@ namespace ITServiceDesk.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ITServiceDesk.Core.Entities.Device", b =>
+                {
+                    b.HasOne("ITServiceDesk.Core.Entities.DeviceCategory", "Category")
+                        .WithMany("Devices")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ITServiceDesk.Core.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Department");
+                });
+
             modelBuilder.Entity("ITServiceDesk.Core.Entities.Notification", b =>
                 {
                     b.HasOne("ITServiceDesk.Core.Entities.Ticket", "RelatedTicket")
@@ -591,6 +717,10 @@ namespace ITServiceDesk.Data.Migrations
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("ITServiceDesk.Core.Entities.Device", "Device")
+                        .WithMany("Tickets")
+                        .HasForeignKey("DeviceId");
+
                     b.HasOne("ITServiceDesk.Core.Entities.AppUser", "Requester")
                         .WithMany("CreatedTickets")
                         .HasForeignKey("RequesterId")
@@ -600,6 +730,8 @@ namespace ITServiceDesk.Data.Migrations
                     b.Navigation("Assignee");
 
                     b.Navigation("Department");
+
+                    b.Navigation("Device");
 
                     b.Navigation("Requester");
                 });
@@ -678,6 +810,16 @@ namespace ITServiceDesk.Data.Migrations
                     b.Navigation("Tickets");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("ITServiceDesk.Core.Entities.Device", b =>
+                {
+                    b.Navigation("Tickets");
+                });
+
+            modelBuilder.Entity("ITServiceDesk.Core.Entities.DeviceCategory", b =>
+                {
+                    b.Navigation("Devices");
                 });
 
             modelBuilder.Entity("ITServiceDesk.Core.Entities.Ticket", b =>

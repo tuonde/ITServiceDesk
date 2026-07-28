@@ -9,6 +9,7 @@ public class TicketCreateDto
     public string Description { get; set; } = string.Empty;
     public Priority Priority { get; set; }
     public Guid? DepartmentId { get; set; }
+    public Guid? DeviceId { get; set; }
     
     [JsonIgnore]
     public Guid RequesterId { get; set; }

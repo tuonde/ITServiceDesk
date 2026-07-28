@@ -10,5 +10,7 @@ public class TicketUpdateDto
     public TicketStatus Status { get; set; }
     public Priority Priority { get; set; }
     public Guid? AssigneeId { get; set; }
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? DeviceId { get; set; }
+    public string? ResolutionReport { get; set; }
 }

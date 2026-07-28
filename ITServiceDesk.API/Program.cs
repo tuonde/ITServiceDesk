@@ -20,6 +20,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Common frontend ports
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ITServiceDesk API", Version = "v1" });
@@ -87,6 +98,19 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/ticketHub"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Repositories
@@ -101,6 +125,9 @@ builder.Services.AddScoped<ICommentService, CommentManager>();
 builder.Services.AddScoped<IAttachmentService, AttachmentManager>();
 builder.Services.AddScoped<INotificationService, NotificationManager>();
 builder.Services.AddScoped<IAuthService, AuthManager>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+builder.Services.AddScoped<IDeviceService, DeviceManager>();
 builder.Services.AddHttpContextAccessor();
 
 // Background Workers
@@ -125,6 +152,8 @@ app.UseHttpsRedirection();
 
 // Dosya yükleme (Uploads) klasörü için dışarıya statik dosya erişimini açıyoruz
 app.UseStaticFiles();
+
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();

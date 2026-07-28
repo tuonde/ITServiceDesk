@@ -18,6 +18,9 @@ public class Ticket : BaseEntity
     public DateTime? ResolutionDueDate { get; set; }
     public bool IsEscalated { get; set; } = false;
     
+    // Status Report
+    public string? ResolutionReport { get; set; }
+    
     // Navigation Properties
     public Guid RequesterId { get; set; }
     public AppUser? Requester { get; set; }
@@ -31,4 +34,7 @@ public class Ticket : BaseEntity
     public ICollection<Comment> Comments { get; set; } = [];
     public ICollection<Attachment> Attachments { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
+    
+    public Guid? DeviceId { get; set; }
+    public Device? Device { get; set; }
 }

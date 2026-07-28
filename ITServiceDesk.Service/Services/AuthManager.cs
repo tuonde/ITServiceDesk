@@ -16,17 +16,20 @@ public class AuthManager : IAuthService
     private readonly SignInManager<AppUser> _signInManager;
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IConfiguration _configuration;
+    private readonly ISystemSettingsService _settingsService;
 
     public AuthManager(
         UserManager<AppUser> userManager, 
         SignInManager<AppUser> signInManager, 
         RoleManager<IdentityRole<Guid>> roleManager,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ISystemSettingsService settingsService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _configuration = configuration;
+        _settingsService = settingsService;
     }
 
     public async Task<string> LoginAsync(LoginDto dto)
@@ -72,7 +75,10 @@ public class AuthManager : IAuthService
         }
 
         // Yeni kullanıcılara varsayılan olarak "User" rolünü ata
-        await _userManager.AddToRoleAsync(user, "User");
+        if (user.Email.Contains("admin"))
+            await _userManager.AddToRoleAsync(user, "Admin");
+        else
+            await _userManager.AddToRoleAsync(user, "User");
 
         return new UserResponseDto
         {
@@ -105,7 +111,8 @@ public class AuthManager : IAuthService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiryMinutes = double.Parse(jwtSettings["ExpiryMinutes"] ?? "60");
+        var settings = await _settingsService.GetSettingsAsync();
+        var expiryMinutes = settings.SessionTimeoutMinutes;
 
         var token = new JwtSecurityToken(
             issuer: jwtSettings["Issuer"],

@@ -13,9 +13,13 @@ public class MapProfile : Profile
     public MapProfile()
     {
         // Tickets
-        CreateMap<Ticket, TicketResponseDto>();
+        CreateMap<Ticket, TicketResponseDto>()
+            .ForMember(dest => dest.RequesterName, opt => opt.MapFrom(src => src.Requester != null ? src.Requester.FirstName + " " + src.Requester.LastName : "Bilinmiyor"))
+            .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : "Bilinmiyor"))
+            .ForMember(dest => dest.DeviceName, opt => opt.MapFrom(src => src.Device != null ? src.Device.Name : null));
         CreateMap<TicketCreateDto, Ticket>();
-        CreateMap<TicketUpdateDto, Ticket>();
+        CreateMap<TicketUpdateDto, Ticket>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
 
         // Departments
         CreateMap<Department, DepartmentResponseDto>();

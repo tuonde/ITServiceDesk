@@ -12,21 +12,33 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
     {
     }
 
+    public new async Task<Ticket?> GetByIdAsync(Guid id)
+    {
+        return await _context.Tickets
+            .Include(t => t.Requester)
+            .Include(t => t.Assignee)
+            .Include(t => t.Department)
+            .Include(t => t.Device)
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+    }
+
     public async Task<IEnumerable<Ticket>> GetTicketsWithDetailsAsync()
     {
         return await _context.Tickets
             .Include(t => t.Requester)
             .Include(t => t.Assignee)
             .Include(t => t.Department)
+            .Include(t => t.Device)
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? requesterId)
+    public async Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? requesterId, Guid? deviceId)
     {
         var query = _context.Tickets
             .Include(t => t.Requester)
             .Include(t => t.Assignee)
             .Include(t => t.Department)
+            .Include(t => t.Device)
             .AsQueryable();
 
         if (status.HasValue)
@@ -37,6 +49,9 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             
         if (requesterId.HasValue)
             query = query.Where(t => t.RequesterId == requesterId.Value);
+            
+        if (deviceId.HasValue)
+            query = query.Where(t => t.DeviceId == deviceId.Value);
 
         var totalCount = await query.CountAsync();
 

@@ -6,6 +6,8 @@ using ITServiceDesk.Service.DTOs;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.Extensions.Logging;
 using ITServiceDesk.Core.Enums;
+using Microsoft.AspNetCore.SignalR;
+using ITServiceDesk.Service.Hubs;
 
 namespace ITServiceDesk.Service.Services;
 
@@ -14,15 +16,18 @@ public class TicketManager : ITicketService
     private readonly ITicketRepository _ticketRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<TicketManager> _logger;
+    private readonly IHubContext<TicketHub> _hubContext;
 
     public TicketManager(
         ITicketRepository ticketRepository, 
         IMapper mapper, 
-        ILogger<TicketManager> logger)
+        ILogger<TicketManager> logger,
+        IHubContext<TicketHub> hubContext)
     {
         _ticketRepository = ticketRepository;
         _mapper = mapper;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     public async Task<PagedResponse<IEnumerable<TicketResponseDto>>> GetAllAsync(TicketFilterDto filter, Guid userId, bool isAdmin)
@@ -33,7 +38,8 @@ public class TicketManager : ITicketService
             filter.PageSize, 
             filter.Status, 
             filter.Priority, 
-            requesterId);
+            requesterId,
+            filter.DeviceId);
 
         var dtos = _mapper.Map<IEnumerable<TicketResponseDto>>(tickets);
         
@@ -85,7 +91,12 @@ public class TicketManager : ITicketService
         await _ticketRepository.AddAsync(ticket);
         await _ticketRepository.SaveChangesAsync();
 
-        return _mapper.Map<TicketResponseDto>(ticket);
+        var responseDto = _mapper.Map<TicketResponseDto>(ticket);
+        
+        // SignalR üzerinden canlı bildirim (herkese gönderilir, client kimin görmesi gerektiğine karar verir)
+        await _hubContext.Clients.All.SendAsync("TicketCreated", responseDto);
+
+        return responseDto;
     }
 
     public async Task<TicketResponseDto> UpdateAsync(TicketUpdateDto dto)
@@ -95,10 +106,22 @@ public class TicketManager : ITicketService
             throw new Exception("Ticket bulunamadı.");
 
         _mapper.Map(dto, existingTicket);
+        
+        if (dto.Status == TicketStatus.Resolved || dto.Status == TicketStatus.Closed)
+        {
+            if (existingTicket.ResolvedAt == null)
+                existingTicket.ResolvedAt = DateTime.UtcNow;
+        }
+
         _ticketRepository.Update(existingTicket);
         await _ticketRepository.SaveChangesAsync();
 
-        return _mapper.Map<TicketResponseDto>(existingTicket);
+        var responseDto = _mapper.Map<TicketResponseDto>(existingTicket);
+
+        // SignalR üzerinden canlı bildirim
+        await _hubContext.Clients.All.SendAsync("TicketUpdated", responseDto);
+
+        return responseDto;
     }
 
     public async Task<bool> DeleteAsync(Guid id)
