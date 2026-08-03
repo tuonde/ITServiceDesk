@@ -60,11 +60,14 @@ const Inventory: React.FC = () => {
     }
   };
 
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'All' | TicketStatus>('All');
+  const [historyPriorityFilter, setHistoryPriorityFilter] = useState<'All' | number>('All');
+
   const loadHistory = async (deviceId: string) => {
     try {
       setIsHistoryLoading(true);
-      const res = await ticketService.getAll({ pageNumber: 1, pageSize: 100, deviceId });
-      setDeviceHistory(res.data || []);
+      const res = await ticketService.getByDeviceId(deviceId);
+      setDeviceHistory(res || []);
     } catch (error) {
       toast.error("Geçmiş yüklenemedi");
     } finally {
@@ -218,8 +221,8 @@ const Inventory: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-xl font-bold text-slate-800">Envanter Yönetimi</h2>
           <p className="text-sm text-slate-500 mt-1">Sistemdeki tüm cihazlarınızı yönetin ve durumlarını takip edin.</p>
@@ -234,7 +237,7 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Toplam Cihaz</p>
@@ -274,9 +277,9 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* Main List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-0">
         {/* Filters */}
-        <div className="p-4 border-b border-slate-100 flex gap-4 flex-wrap">
+        <div className="p-4 border-b border-slate-100 flex gap-4 flex-wrap shrink-0">
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
@@ -458,9 +461,8 @@ const Inventory: React.FC = () => {
 
       {/* Drawer (Device Details & History) */}
       {isDrawerOpen && selectedDevice && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)}></div>
-          <div className="w-full max-w-md bg-white h-full shadow-2xl relative flex flex-col animate-slide-in-right">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsDrawerOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up relative" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h2 className="text-xl font-bold text-slate-800">Cihaz Detayları</h2>
               <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
@@ -468,8 +470,8 @@ const Inventory: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-              <div className="bg-slate-50 p-4 rounded-2xl mb-8 border border-slate-100">
+            <div className="p-6 flex flex-col flex-1 overflow-hidden">
+              <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100 shrink-0">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">{selectedDevice.name}</h3>
@@ -483,45 +485,84 @@ const Inventory: React.FC = () => {
                 </div>
               </div>
 
-              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Arıza Geçmişi ({deviceHistory.length})
-              </h4>
-
-              {isHistoryLoading ? (
-                <div className="text-center py-8 text-slate-500 text-sm">Yükleniyor...</div>
-              ) : deviceHistory.length === 0 ? (
-                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <p className="text-slate-500 text-sm">Bu cihaza ait arıza kaydı bulunmuyor.</p>
+              <div className="flex items-center justify-between mb-4 shrink-0">
+                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Arıza Geçmişi ({deviceHistory.length})
+                </h4>
+                
+                <div className="flex gap-2">
+                  <select 
+                    value={historyStatusFilter} 
+                    onChange={e => setHistoryStatusFilter(e.target.value === 'All' ? 'All' : Number(e.target.value) as TicketStatus)}
+                    className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 outline-none"
+                  >
+                    <option value="All">Tüm Durumlar</option>
+                    <option value={TicketStatus.Open}>Açık</option>
+                    <option value={TicketStatus.InProgress}>İşlemde</option>
+                    <option value={TicketStatus.WaitingForUser}>Kullanıcı Bekleniyor</option>
+                    <option value={TicketStatus.Resolved}>Çözüldü</option>
+                    <option value={TicketStatus.Closed}>Kapalı</option>
+                  </select>
+                  <select 
+                    value={historyPriorityFilter} 
+                    onChange={e => setHistoryPriorityFilter(e.target.value === 'All' ? 'All' : Number(e.target.value))}
+                    className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 outline-none"
+                  >
+                    <option value="All">Tüm Öncelikler</option>
+                    <option value={1}>Düşük</option>
+                    <option value={2}>Orta</option>
+                    <option value={3}>Yüksek</option>
+                    <option value={4}>Kritik</option>
+                  </select>
                 </div>
-              ) : (
-                <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                  {deviceHistory.map(ticket => (
-                    <div key={ticket.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                        {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? (
-                          <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        ) : (
-                          <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        )}
-                      </div>
-
-                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-default">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed
-                            ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                            }`}>
-                            {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? 'Çözüldü' : 'Açık'}
-                          </span>
-                          <span className="text-xs text-slate-400 font-medium">{new Date(ticket.createdAt).toLocaleDateString('tr-TR')}</span>
+              </div>
+              <div className="overflow-y-auto flex-1 custom-scrollbar pr-2">
+                {isHistoryLoading ? (
+                  <div className="text-center py-8 text-slate-500 text-sm">Yükleniyor...</div>
+                ) : deviceHistory.length === 0 ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <p className="text-slate-500 text-sm">Bu cihaza ait arıza kaydı bulunmuyor.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                    {deviceHistory
+                      .filter(t => historyStatusFilter === 'All' || t.status === historyStatusFilter)
+                      .filter(t => historyPriorityFilter === 'All' || t.priority === historyPriorityFilter)
+                      .map(ticket => (
+                      <div key={ticket.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                          {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? (
+                            <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          )}
                         </div>
-                        <h5 className="text-sm font-semibold text-slate-800 truncate mb-1" title={ticket.title}>{ticket.title}</h5>
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{ticket.description}</p>
+
+                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-default">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed
+                              ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                              }`}>
+                              {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? 'Çözüldü' : 'Açık'}
+                            </span>
+                            <span className="text-xs text-slate-400 font-medium">{new Date(ticket.createdAt).toLocaleDateString('tr-TR')}</span>
+                          </div>
+                          <h5 className="text-sm font-semibold text-slate-800 truncate mb-1" title={ticket.title}>{ticket.title}</h5>
+                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{ticket.description}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                    
+                    {deviceHistory.filter(t => historyStatusFilter === 'All' || t.status === historyStatusFilter)
+                      .filter(t => historyPriorityFilter === 'All' || t.priority === historyPriorityFilter).length === 0 && (
+                      <div className="text-center py-8 text-slate-500 text-sm">
+                        Seçilen filtrelere uygun arıza bulunamadı.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

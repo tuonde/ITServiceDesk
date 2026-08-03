@@ -4,6 +4,7 @@ using ITServiceDesk.Core.Interfaces.Repositories;
 using ITServiceDesk.Service.DTOs.Attachments;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 
 namespace ITServiceDesk.Service.Services;
 
@@ -22,8 +23,10 @@ public class AttachmentManager : IAttachmentService
 
     public async Task<IEnumerable<AttachmentResponseDto>> GetByTicketIdAsync(Guid ticketId)
     {
-        var all = await _repository.GetAllAsync();
-        var attachments = all.Where(x => x.TicketId == ticketId);
+        var attachments = await _repository.Query()
+            .Include(x => x.Uploader)
+            .Where(x => x.TicketId == ticketId)
+            .ToListAsync();
         return _mapper.Map<IEnumerable<AttachmentResponseDto>>(attachments);
     }
 
@@ -51,7 +54,8 @@ public class AttachmentManager : IAttachmentService
             FileSize = dto.File.Length,
             FilePath = "/uploads/" + uniqueFileName,
             TicketId = dto.TicketId,
-            CommentId = dto.CommentId
+            CommentId = dto.CommentId,
+            UploaderId = dto.UploaderId
         };
         await _repository.AddAsync(attachment);
         await _repository.SaveChangesAsync();

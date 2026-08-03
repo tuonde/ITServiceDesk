@@ -3,6 +3,7 @@ using ITServiceDesk.Service.DTOs.Comments;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace ITServiceDesk.API.Controllers;
 
@@ -24,6 +25,16 @@ public class CommentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CommentCreateDto dto)
     {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (Guid.TryParse(userIdString, out Guid userId))
+        {
+            dto.UserId = userId;
+        }
+        else
+        {
+            return Unauthorized(ApiResponse<CommentResponseDto>.Fail("Kullanıcı kimliği alınamadı."));
+        }
+
         var result = await _service.CreateAsync(dto);
         return Ok(ApiResponse<CommentResponseDto>.Success(result, "Yorum oluşturuldu."));
     }

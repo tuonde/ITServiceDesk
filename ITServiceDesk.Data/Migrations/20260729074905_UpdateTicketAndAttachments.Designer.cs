@@ -4,6 +4,7 @@ using ITServiceDesk.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ITServiceDesk.Data.Migrations
 {
     [DbContext(typeof(ITServiceDeskDbContext))]
-    partial class ITServiceDeskDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729074905_UpdateTicketAndAttachments")]
+    partial class UpdateTicketAndAttachments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -145,16 +148,18 @@ namespace ITServiceDesk.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("UploaderId")
+                    b.Property<Guid>("UploaderId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UploaderName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CommentId");
 
                     b.HasIndex("TicketId");
-
-                    b.HasIndex("UploaderId");
 
                     b.ToTable("Attachments");
                 });
@@ -433,6 +438,12 @@ namespace ITServiceDesk.Data.Migrations
                     b.Property<Guid?>("DeviceId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("HasUnreadAdminMessage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("HasUnreadUserMessage")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -634,15 +645,9 @@ namespace ITServiceDesk.Data.Migrations
                         .HasForeignKey("TicketId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("ITServiceDesk.Core.Entities.AppUser", "Uploader")
-                        .WithMany()
-                        .HasForeignKey("UploaderId");
-
                     b.Navigation("Comment");
 
                     b.Navigation("Ticket");
-
-                    b.Navigation("Uploader");
                 });
 
             modelBuilder.Entity("ITServiceDesk.Core.Entities.AuditLog", b =>

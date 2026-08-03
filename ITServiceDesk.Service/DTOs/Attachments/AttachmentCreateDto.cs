@@ -7,4 +7,5 @@ public class AttachmentCreateDto
     public IFormFile File { get; set; } = null!;
     public Guid? TicketId { get; set; }
     public Guid? CommentId { get; set; }
+    public Guid? UploaderId { get; set; }
 }

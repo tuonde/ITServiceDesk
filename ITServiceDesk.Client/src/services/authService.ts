@@ -43,8 +43,7 @@ export const authService = {
         const token = localStorage.getItem('token');
         if (!token) return null;
         try {
-            const payloadBase64 = token.split('.')[1];
-            const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
             const payload = JSON.parse(payloadJson);
             return payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role || null;
         } catch (e) {
@@ -56,12 +55,47 @@ export const authService = {
         const token = localStorage.getItem('token');
         if (!token) return null;
         try {
-            const payloadBase64 = token.split('.')[1];
-            const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
             const payload = JSON.parse(payloadJson);
             return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || payload.nameid || payload.sub || null;
         } catch (e) {
             return null;
         }
+    },
+
+    getUserFirstName: (): string | null => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        try {
+            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
+            const payload = JSON.parse(payloadJson);
+            return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || payload.given_name || null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    getUserFullName: (): string | null => {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        try {
+            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
+            const payload = JSON.parse(payloadJson);
+            const firstName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || payload.given_name || '';
+            const lastName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] || payload.family_name || '';
+            return `${firstName} ${lastName}`.trim() || null;
+        } catch (e) {
+            return null;
+        }
     }
+};
+
+const decodeBase64Utf8 = (base64Url: string): string => {
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const binString = atob(base64);
+    const bytes = new Uint8Array(binString.length);
+    for (let i = 0; i < binString.length; i++) {
+        bytes[i] = binString.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
 };

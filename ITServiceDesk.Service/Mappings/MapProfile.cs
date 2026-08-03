@@ -28,11 +28,13 @@ public class MapProfile : Profile
         // Comments
         CreateMap<CommentCreateDto, Comment>();
         CreateMap<CommentUpdateDto, Comment>();
-        CreateMap<Comment, CommentResponseDto>();
+        CreateMap<Comment, CommentResponseDto>()
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.FirstName + " " + src.User.LastName : "Bilinmeyen Kullanıcı"));
 
         // Attachments
         CreateMap<AttachmentCreateDto, Attachment>();
-        CreateMap<Attachment, AttachmentResponseDto>();
+        CreateMap<Attachment, AttachmentResponseDto>()
+            .ForMember(dest => dest.UploaderName, opt => opt.MapFrom(src => src.Uploader != null ? src.Uploader.FirstName + " " + src.Uploader.LastName : "Bilinmiyor"));
 
         // Notifications
         CreateMap<NotificationUpdateDto, Notification>();

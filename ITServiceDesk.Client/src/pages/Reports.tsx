@@ -109,12 +109,12 @@ const Reports: React.FC = () => {
     };
   }, [tickets]);
 
-  // Chart 1: Personel Bazlı Çözüm Süresi
-  const assigneePerformance = useMemo(() => {
+  // Chart 1: Departman Bazlı Çözüm Süresi
+  const departmentPerformance = useMemo(() => {
     const map: Record<string, { totalHours: number, count: number }> = {};
     tickets.forEach(t => {
       if (t.status === TicketStatus.Resolved || t.status === TicketStatus.Closed) {
-        const name = t.assigneeId ? `Per ${t.assigneeId.substring(0,4).toUpperCase()}` : 'Atanmamış';
+        const name = t.departmentName || 'Belirtilmeyen';
         const endStr = t.resolvedAt || new Date().toISOString();
         if (endStr) {
           const diffMs = new Date(endStr).getTime() - new Date(t.createdAt).getTime();
@@ -126,7 +126,8 @@ const Reports: React.FC = () => {
       }
     });
     const result = Object.entries(map).map(([name, data]) => ({
-      name,
+      name: name.length > 15 ? name.substring(0, 15) + '...' : name,
+      fullName: name,
       'Ortalama Saat': parseFloat((data.totalHours / data.count).toFixed(1))
     })).sort((a, b) => b['Ortalama Saat'] - a['Ortalama Saat']).slice(0, 10);
     
@@ -303,24 +304,29 @@ const Reports: React.FC = () => {
                 </div>
               </div>
 
-              {/* Personnel Chart */}
+              {/* Department Resolution Time Chart */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-3">
-                <h3 className="text-base font-bold text-slate-800 mb-6">Personel Bazlı Ortalama Çözüm Süresi (Saat)</h3>
+                <h3 className="text-base font-bold text-slate-800 mb-6">Departman Bazlı Ortalama Çözüm Süresi (Saat)</h3>
                 <div className="h-[300px]">
-                  {assigneePerformance.length === 0 ? (
+                  {departmentPerformance.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor (Çözülmüş talep yok)</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={assigneePerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={departmentPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <RechartsTooltip
                           cursor={{ fill: '#f8fafc' }}
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                          labelFormatter={(label) => {
+                             const item = departmentPerformance.find(d => d.name === label);
+                             return item ? item.fullName : label;
+                          }}
                         />
                         <Bar dataKey="Ortalama Saat" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                          {assigneePerformance.map((_, index) => (
+                          {departmentPerformance.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#6366f1'} />
                           ))}
                         </Bar>

@@ -35,6 +35,13 @@ public class TicketsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("device/{deviceId}")]
+    public async Task<IActionResult> GetByDeviceId(Guid deviceId)
+    {
+        var result = await _ticketService.GetByDeviceIdAsync(deviceId);
+        return Ok(ApiResponse<IEnumerable<TicketResponseDto>>.Success(result));
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -99,6 +106,7 @@ public class TicketsController : ControllerBase
             return BadRequest(ApiResponse<TicketResponseDto>.Fail($"Update failed: {ex.Message} - Inner: {ex.InnerException?.Message} - Trace: {ex.StackTrace}"));
         }
     }
+
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)

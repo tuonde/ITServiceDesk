@@ -13,4 +13,7 @@ public class Attachment : BaseEntity
     
     public Guid? CommentId { get; set; }
     public Comment? Comment { get; set; }
+    
+    public Guid? UploaderId { get; set; }
+    public AppUser? Uploader { get; set; }
 }

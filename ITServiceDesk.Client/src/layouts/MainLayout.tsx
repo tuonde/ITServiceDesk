@@ -3,10 +3,12 @@ import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { signalrService } from '../services/signalrService';
 import toast from 'react-hot-toast';
-import { TicketStatus, type TicketResponseDto } from '../types/ticket';
+import { TicketStatus } from '../types/ticket';
 import { ticketService } from '../services/ticketService';
 import { settingsService } from '../services/settingsService';
 import { useSettings } from '../contexts/SettingsContext';
+import notificationService, { type NotificationDto } from '../services/notificationService';
+import { useNavigate } from 'react-router-dom';
 
 const MainLayout: React.FC = () => {
   const { settings } = useSettings();
@@ -34,6 +36,20 @@ const MainLayout: React.FC = () => {
 
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
   const [openTicketCount, setOpenTicketCount] = React.useState(0);
+  const [notifications, setNotifications] = React.useState<NotificationDto[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = React.useState(false);
+  const notifRef = React.useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   React.useEffect(() => {
     const fetchLogo = async () => {
@@ -66,30 +82,52 @@ const MainLayout: React.FC = () => {
         setOpenTicketCount(res.totalRecords);
       } catch (err) {}
     };
-    fetchOpenTickets();
-
-    const handleTicketCreated = (ticket: TicketResponseDto) => {
-      fetchOpenTickets();
-      const currentUserId = authService.getUserId();
-      if (isAdmin || ticket.requesterId === currentUserId) {
-        toast.success(`Yeni Talep Oluşturuldu: ${ticket.title}`);
-      }
+    
+    const fetchNotifications = async () => {
+      try {
+        const userId = authService.getUserId();
+        if (userId) {
+          const res = await notificationService.getAll(userId);
+          setNotifications(res);
+        }
+      } catch (err) {}
     };
 
-    const handleTicketUpdated = (ticket: TicketResponseDto) => {
+    fetchOpenTickets();
+    fetchNotifications();
+
+    const handleTicketCreated = () => {
       fetchOpenTickets();
-      const currentUserId = authService.getUserId();
-      if (isAdmin || ticket.requesterId === currentUserId) {
-        toast.success(`Talep Güncellendi: ${ticket.title}`);
-      }
+    };
+
+    const handleTicketUpdated = () => {
+      fetchOpenTickets();
+    };
+
+    const handleReceiveNotification = (notif: NotificationDto) => {
+      setNotifications(prev => [notif, ...prev]);
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+          <div className="flex-1 w-0 p-4">
+            <div className="flex items-start">
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">Yeni Bildirim</p>
+                <p className="mt-1 text-sm text-gray-500">{notif.message}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ));
     };
 
     signalrService.on('TicketCreated', handleTicketCreated);
     signalrService.on('TicketUpdated', handleTicketUpdated);
+    signalrService.on('ReceiveNotification', handleReceiveNotification);
 
     return () => {
       signalrService.off('TicketCreated', handleTicketCreated);
       signalrService.off('TicketUpdated', handleTicketUpdated);
+      signalrService.off('ReceiveNotification', handleReceiveNotification);
       signalrService.stopConnection();
     };
   }, [isAdmin]);
@@ -176,17 +214,103 @@ const MainLayout: React.FC = () => {
         {/* Subtle top decoration */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-emerald-50/50 to-transparent -z-10"></div>
         
-        <header className="h-16 flex items-center justify-between px-8 z-10">
+        <header className="h-16 flex items-center justify-between px-8 relative z-50">
           <h2 className="text-slate-800 font-bold text-2xl tracking-tight">{pageTitle}</h2>
           
-          {/* User profile mockup */}
-          <Link 
-            to="/profile" 
-            className="w-9 h-9 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 font-bold transition-colors focus:outline-none"
-            title="Profilim"
-          >
-             A
-          </Link>
+          {/* User profile and Notifications mockup */}
+          <div className="flex items-center gap-4">
+            
+            {/* Notifications Dropdown */}
+            <div className="relative" ref={notifRef}>
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="relative w-10 h-10 bg-white border border-slate-200 hover:bg-slate-50 rounded-full flex items-center justify-center text-slate-600 transition-colors focus:outline-none shadow-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                {notifications.filter(n => !n.isRead).length > 0 && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4">
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 text-[9px] font-bold text-white items-center justify-center">
+                      {notifications.filter(n => !n.isRead).length > 9 ? '9+' : notifications.filter(n => !n.isRead).length}
+                    </span>
+                  </span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="font-semibold text-slate-800">Bildirimler</h3>
+                    {notifications.some(n => !n.isRead) && (
+                      <button 
+                        onClick={async () => {
+                          const userId = authService.getUserId();
+                          if(userId) {
+                            await notificationService.markAllAsRead(userId);
+                            setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+                          }
+                        }}
+                        className="text-xs text-emerald-600 font-medium hover:text-emerald-700 transition-colors"
+                      >
+                        Tümünü Okundu İşaretle
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-slate-500">
+                        Henüz bildiriminiz yok.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-50">
+                        {notifications.map(notif => (
+                          <div 
+                            key={notif.id} 
+                            className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${!notif.isRead ? 'bg-emerald-50/30' : ''}`}
+                            onClick={async () => {
+                              if (!notif.isRead) {
+                                await notificationService.markAsRead(notif.id);
+                                setNotifications(prev => prev.map(n => n.id === notif.id ? {...n, isRead: true} : n));
+                              }
+                              setIsNotifOpen(false);
+                              if (notif.relatedTicketId) {
+                                navigate(`/tickets`);
+                                // Wait a bit for navigation then open the specific ticket (Can be improved with context or URL params)
+                                setTimeout(() => window.dispatchEvent(new CustomEvent('open-ticket', { detail: notif.relatedTicketId })), 100);
+                              }
+                            }}
+                          >
+                            <div className="flex gap-3">
+                              <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${!notif.isRead ? 'bg-emerald-500' : 'bg-transparent'}`}></div>
+                              <div>
+                                <p className={`text-sm ${!notif.isRead ? 'font-medium text-slate-800' : 'text-slate-600'}`}>
+                                  {notif.message}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {new Date(notif.createdAt).toLocaleString('tr-TR')}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="text-right hidden sm:block">
+              <div className="text-sm font-bold text-slate-800">{authService.getUserFullName() || 'Kullanıcı'}</div>
+              <div className="text-xs font-semibold text-slate-500">{authService.getUserRole() || 'Bilinmiyor'}</div>
+            </div>
+            <Link 
+              to="/profile" 
+              className="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 transition-colors focus:outline-none shadow-sm"
+              title="Profilim"
+            >
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </Link>
+          </div>
         </header>
         <div className="p-8 flex-1 overflow-auto z-10">
           <Outlet />

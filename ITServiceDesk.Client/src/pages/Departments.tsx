@@ -83,23 +83,22 @@ export default function Departments() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden max-w-5xl mx-auto w-full">
+      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Departman Yönetimi</h1>
+          <h2 className="text-xl font-bold text-slate-800">Departman Yönetimi</h2>
           <p className="text-sm text-slate-500 mt-1">Sistemdeki departmanları ekleyin, düzenleyin veya silin.</p>
         </div>
         <button
           onClick={openAddModal}
-          className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm font-medium flex items-center gap-2"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm shadow-emerald-200"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
           Yeni Departman
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-200">
@@ -148,7 +147,6 @@ export default function Departments() {
             </tbody>
           </table>
         </div>
-      </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">

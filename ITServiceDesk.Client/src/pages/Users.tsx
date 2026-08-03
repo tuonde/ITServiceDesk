@@ -64,11 +64,30 @@ const Users: React.FC = () => {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      toast.error('Ad ve Soyad alanları boş bırakılamaz.');
+      return;
+    }
+
+    const sanitize = (text: string) => {
+      const charMap: Record<string, string> = {
+        'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+        'Ç': 'C', 'Ğ': 'G', 'İ': 'I', 'Ö': 'O', 'Ş': 'S', 'Ü': 'U'
+      };
+      return text.replace(/[çğışöüÇĞİŞÖÜ]/g, match => charMap[match]).toLowerCase().replace(/[^a-z]/g, '');
+    };
+
+    const cleanFirst = sanitize(formData.firstName);
+    const cleanLast = sanitize(formData.lastName);
+    const firstLetter = cleanFirst.charAt(0);
+    const domain = formData.role === 'Admin' ? 'admin.sirket.com' : 'sirket.com';
+    const generatedEmail = `${firstLetter}.${cleanLast}@${domain}`;
+
     try {
       const response = await userService.create({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
+        email: generatedEmail,
         departmentId: formData.departmentId || null,
         role: formData.role,
         phoneNumber: formData.phoneNumber
@@ -76,12 +95,13 @@ const Users: React.FC = () => {
       toast.success((t) => (
         <div className="flex flex-col gap-2">
           <span className="font-bold">Kullanıcı oluşturuldu!</span>
-          <span>Geçici Şifresi: <b className="tracking-wider">{response.data?.generatedPassword}</b></span>
+          <span>E-posta: <b>{generatedEmail}</b></span>
+          <span>Geçici Şifre: <b className="tracking-wider">{response.data?.generatedPassword}</b></span>
           <button 
             onClick={() => { 
-              navigator.clipboard.writeText(response.data?.generatedPassword || ''); 
+              navigator.clipboard.writeText(`Email: ${generatedEmail}\nŞifre: ${response.data?.generatedPassword}`); 
               toast.dismiss(t.id); 
-              toast.success('Şifre panoya kopyalandı!'); 
+              toast.success('Bilgiler panoya kopyalandı!'); 
             }} 
             className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded text-sm font-medium hover:bg-emerald-200 transition-colors"
           >
@@ -99,6 +119,10 @@ const Users: React.FC = () => {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      toast.error('Ad ve Soyad alanları boş bırakılamaz.');
+      return;
+    }
     if (!selectedUser) return;
     try {
       await userService.update({
@@ -339,11 +363,13 @@ const Users: React.FC = () => {
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">E-posta</label>
-                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
-                </div>
-                <div>
+                {isEditModalOpen && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">E-posta (Sabit)</label>
+                    <input disabled type="email" value={formData.email} className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed" />
+                  </div>
+                )}
+                <div className={isAddModalOpen ? "col-span-2" : ""}>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Telefon</label>
                   <div className="relative flex items-center w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
                     <span className="text-slate-500 font-medium mr-1">+90</span>

@@ -3,6 +3,7 @@ import type { TicketResponseDto } from '../types/ticket';
 
 class SignalRService {
     private connection: signalR.HubConnection | null = null;
+    private notificationConnection: signalR.HubConnection | null = null;
     private callbacks: { [event: string]: Function[] } = {};
 
     public startConnection(token: string) {
@@ -27,15 +28,41 @@ class SignalRService {
             this.trigger('TicketUpdated', ticket);
         });
 
+        this.connection.on('ReceiveCommentNotification', (ticketId: string, message: string) => {
+            this.trigger('ReceiveCommentNotification', { ticketId, message });
+        });
+
         this.connection.start()
-            .then(() => console.log('SignalR Connected'))
-            .catch(err => console.error('SignalR Connection Error: ', err));
+            .then(() => console.log('SignalR TicketHub Connected'))
+            .catch(err => console.error('SignalR TicketHub Connection Error: ', err));
+
+        // NotificationHub Connection
+        this.notificationConnection = new signalR.HubConnectionBuilder()
+            .withUrl('http://localhost:5014/notificationHub', {
+                accessTokenFactory: () => token,
+                skipNegotiation: true,
+                transport: signalR.HttpTransportType.WebSockets
+            })
+            .withAutomaticReconnect()
+            .build();
+
+        this.notificationConnection.on('ReceiveNotification', (notification: any) => {
+            this.trigger('ReceiveNotification', notification);
+        });
+
+        this.notificationConnection.start()
+            .then(() => console.log('SignalR NotificationHub Connected'))
+            .catch(err => console.error('SignalR NotificationHub Connection Error: ', err));
     }
 
     public stopConnection() {
         if (this.connection) {
             this.connection.stop();
             this.connection = null;
+        }
+        if (this.notificationConnection) {
+            this.notificationConnection.stop();
+            this.notificationConnection = null;
         }
     }
 

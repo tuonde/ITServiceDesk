@@ -21,10 +21,24 @@ public class NotificationsController : ControllerBase
         return Ok(ApiResponse<IEnumerable<NotificationResponseDto>>.Success(result));
     }
 
+    [HttpGet("user/{userId}/all")]
+    public async Task<IActionResult> GetAll(Guid userId)
+    {
+        var result = await _service.GetAllByUserIdAsync(userId);
+        return Ok(ApiResponse<IEnumerable<NotificationResponseDto>>.Success(result));
+    }
+
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id)
     {
         var result = await _service.MarkAsReadAsync(id);
         return Ok(ApiResponse<NotificationResponseDto>.Success(result, "Okundu olarak işaretlendi."));
+    }
+
+    [HttpPut("user/{userId}/read-all")]
+    public async Task<IActionResult> MarkAllAsRead(Guid userId)
+    {
+        await _service.MarkAllAsReadAsync(userId);
+        return Ok(ApiResponse<string>.Success("Tümü okundu olarak işaretlendi."));
     }
 }

@@ -23,6 +23,14 @@ export const ticketService = {
         return response.data;
     },
 
+    getById: async (id: string): Promise<TicketResponseDto> => {
+        const response = await api.get<ApiResponse<TicketResponseDto>>(`/api/Tickets/${id}`);
+        if (!response.data.isSuccess) {
+            throw new Error(response.data.message || 'Bilet yüklenemedi.');
+        }
+        return response.data.data as TicketResponseDto;
+    },
+
     create: async (data: TicketCreateDto): Promise<TicketResponseDto> => {
         const response = await api.post<ApiResponse<TicketResponseDto>>('/api/Tickets', data);
         if (!response.data.isSuccess) {
@@ -50,5 +58,13 @@ export const ticketService = {
             console.error('Update failed with error response:', error.response?.data);
             throw new Error(error.response?.data?.message || JSON.stringify(error.response?.data?.errors) || error.message || 'Güncelleme başarısız');
         }
+    },
+
+    getByDeviceId: async (deviceId: string): Promise<TicketResponseDto[]> => {
+        const response = await api.get<ApiResponse<TicketResponseDto[]>>(`/api/Tickets/device/${deviceId}`);
+        if (!response.data.isSuccess) {
+            throw new Error(response.data.message || 'Cihaz arıza geçmişi yüklenemedi.');
+        }
+        return response.data.data as TicketResponseDto[];
     }
 };

@@ -5,26 +5,34 @@ using ITServiceDesk.Service.DTOs.Comments;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using ITServiceDesk.Service.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace ITServiceDesk.Service.Services;
 
 public class CommentManager : ICommentService
 {
     private readonly IRepository<Comment> _repository;
+    private readonly IRepository<Ticket> _ticketRepository;
     private readonly IMapper _mapper;
     private readonly IHubContext<TicketHub> _hubContext;
+    private readonly INotificationService _notificationService;
 
-    public CommentManager(IRepository<Comment> repository, IMapper mapper, IHubContext<TicketHub> hubContext)
+    public CommentManager(IRepository<Comment> repository, IRepository<Ticket> ticketRepository, IMapper mapper, IHubContext<TicketHub> hubContext, INotificationService notificationService)
     {
         _repository = repository;
+        _ticketRepository = ticketRepository;
         _mapper = mapper;
         _hubContext = hubContext;
+        _notificationService = notificationService;
     }
 
     public async Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId)
     {
-        var all = await _repository.GetAllAsync();
-        var comments = all.Where(x => x.TicketId == ticketId);
+        var comments = await _repository.Query()
+            .Include(c => c.User)
+            .Where(x => x.TicketId == ticketId)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync();
         return _mapper.Map<IEnumerable<CommentResponseDto>>(comments);
     }
 
@@ -35,8 +43,31 @@ public class CommentManager : ICommentService
         await _repository.SaveChangesAsync();
 
         // SignalR Notification
-        string message = $"Bilet #{comment.TicketId} için yeni bir yorum yapıldı!";
+        var ticket = await _ticketRepository.GetByIdAsync(comment.TicketId);
+        string message = ticket != null ? $"\"{ticket.Title}\" bileti için yeni bir yorum yapıldı!" : $"Bilet için yeni bir yorum yapıldı!";
         await _hubContext.Clients.All.SendAsync("ReceiveCommentNotification", comment.TicketId, message);
+
+        if (ticket != null)
+        {
+            if (comment.UserId == ticket.RequesterId)
+            {
+                // Requester commented, notify ALL Admins
+                await _notificationService.NotifyAdminsAsync(message, ticket.Id);
+            }
+            else
+            {
+                // Admin commented, notify Requester
+                if (ticket.RequesterId != Guid.Empty)
+                {
+                    await _notificationService.CreateAndSendNotificationAsync(new DTOs.Notifications.NotificationCreateDto
+                    {
+                        Message = message,
+                        UserId = ticket.RequesterId,
+                        RelatedTicketId = ticket.Id
+                    });
+                }
+            }
+        }
 
         return _mapper.Map<CommentResponseDto>(comment);
     }

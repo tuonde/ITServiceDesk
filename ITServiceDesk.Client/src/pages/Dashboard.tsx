@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { ticketService } from '../services/ticketService';
 import { type TicketResponseDto, TicketStatus } from '../types/ticket';
@@ -77,6 +78,7 @@ const Dashboard: React.FC = () => {
     switch (status) {
       case TicketStatus.Open: return <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Açık</span>;
       case TicketStatus.InProgress: return <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">İşlemde</span>;
+      case TicketStatus.WaitingForUser: return <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Kullanıcı Bekleniyor</span>;
       case TicketStatus.Resolved: return <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">Çözüldü</span>;
       case TicketStatus.Closed: return <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">Kapalı</span>;
       default: return null;
@@ -253,7 +255,10 @@ const Dashboard: React.FC = () => {
 
         {/* Recent Activities Section */}
         <div className={`bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col ${!isAdmin ? 'lg:col-span-2' : ''}`}>
-          <h3 className="text-lg font-bold text-slate-800 mb-6">{isAdmin ? 'Genel Sistem Aktiviteleri' : 'Son Aktivitelerim'}</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-800">{isAdmin ? 'Genel Sistem Aktiviteleri' : 'Son Aktivitelerim'}</h3>
+            <Link to="/tickets" className="text-sm font-semibold text-slate-400 hover:text-indigo-600 transition-colors">Tümünü Gör &rarr;</Link>
+          </div>
 
           {isLoading ? (
             <div className="text-slate-500 text-center py-8">Yükleniyor...</div>

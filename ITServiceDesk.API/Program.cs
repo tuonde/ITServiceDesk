@@ -25,7 +25,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Common frontend ports
+        policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -104,7 +104,7 @@ builder.Services.AddAuthentication(options =>
         {
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/ticketHub"))
+            if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/ticketHub") || path.StartsWithSegments("/notificationHub")))
             {
                 context.Token = accessToken;
             }
@@ -160,5 +160,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<TicketHub>("/ticketHub");
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

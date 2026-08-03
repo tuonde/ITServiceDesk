@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { ticketService } from '../services/ticketService';
 import { authService } from '../services/authService';
 import { signalrService } from '../services/signalrService';
 import { deviceService } from '../services/deviceService';
+import { commentService } from '../services/commentService';
+import { attachmentService } from '../services/attachmentService';
 import { TicketStatus, Priority, type TicketResponseDto, type TicketCreateDto } from '../types/ticket';
+import type { CommentResponseDto } from '../types/comment';
+import type { AttachmentResponseDto } from '../types/attachment';
 import { type DeviceDto, DeviceStatus } from '../types/device';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -24,7 +29,7 @@ const Tickets: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Sorting & Filtering State
-  const [sortConfig, setSortConfig] = useState<{key: keyof TicketResponseDto, direction: 'asc'|'desc'} | null>(null);
+  const [sortConfig, setSortConfig] = useState<{key: keyof TicketResponseDto, direction: 'asc'|'desc'} | null>({ key: 'createdAt', direction: 'desc' });
   const [filterType, setFilterType] = useState<'all' | 'resolved' | 'open' | 'inProgress' | 'unresolved'>('all');
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
@@ -54,6 +59,23 @@ const Tickets: React.FC = () => {
   const [editTicketData, setEditTicketData] = useState<{ id: string, title: string, description: string, priority: Priority, deviceId: string | null }>({ id: '', title: '', description: '', priority: Priority.Low, deviceId: null });
   const [isEditing, setIsEditing] = useState(false);
 
+  // Comments State
+  const [comments, setComments] = useState<CommentResponseDto[]>([]);
+  const [newCommentContent, setNewCommentContent] = useState('');
+  const [isSendingComment, setIsSendingComment] = useState(false);
+
+  // Attachments State
+  const [attachments, setAttachments] = useState<AttachmentResponseDto[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // New Ticket Files
+  const [newTicketFiles, setNewTicketFiles] = useState<File[]>([]);
+  const newTicketFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Unread Messages State
+  const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
+
   useEffect(() => {
     loadTickets();
     loadDevices();
@@ -65,14 +87,65 @@ const Tickets: React.FC = () => {
       }
     };
 
+    const handleCommentEvent = (data: { ticketId: string, message: string }) => {
+      if (selectedTicket?.id === data.ticketId) {
+        loadComments(data.ticketId);
+        loadAttachments(data.ticketId);
+      } else {
+        setUnreadMessages(prev => ({ ...prev, [data.ticketId]: (prev[data.ticketId] || 0) + 1 }));
+      }
+    };
+
     signalrService.on('TicketCreated', handleSignalREvent);
     signalrService.on('TicketUpdated', handleSignalREvent);
+    signalrService.on('ReceiveCommentNotification', handleCommentEvent);
+
+    const handleOpenTicketEvent = async (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      const ticketId = customEvent.detail;
+      try {
+        const ticket = await ticketService.getById(ticketId);
+        setSelectedTicket(ticket);
+        loadComments(ticketId);
+        loadAttachments(ticketId);
+        // Remove unread flag for this ticket
+        setUnreadMessages(prev => {
+          const next = { ...prev };
+          delete next[ticketId];
+          return next;
+        });
+      } catch (error) {
+        console.error("Failed to load ticket from notification", error);
+      }
+    };
+
+    window.addEventListener('open-ticket', handleOpenTicketEvent);
 
     return () => {
       signalrService.off('TicketCreated', handleSignalREvent);
       signalrService.off('TicketUpdated', handleSignalREvent);
+      signalrService.off('ReceiveCommentNotification', handleCommentEvent);
+      window.removeEventListener('open-ticket', handleOpenTicketEvent);
     };
-  }, []);
+  }, [selectedTicket]);
+
+  const loadComments = async (ticketId: string) => {
+    try {
+      const data = await commentService.getByTicketId(ticketId);
+      setComments(data);
+    } catch (err) {
+      console.error('Yorumlar yüklenemedi', err);
+    }
+  };
+
+  const loadAttachments = async (ticketId: string) => {
+    try {
+      const data = await attachmentService.getByTicketId(ticketId);
+      setAttachments(data);
+    } catch (err) {
+      console.error('Ekler yüklenemedi', err);
+    }
+  };
 
   const loadTickets = async () => {
     try {
@@ -100,9 +173,23 @@ const Tickets: React.FC = () => {
     e.preventDefault();
     try {
       setIsCreating(true);
-      await ticketService.create(newTicket);
+      const createdTicket = await ticketService.create(newTicket);
+      
+      // Upload files if any
+      if (newTicketFiles.length > 0) {
+        for (const file of newTicketFiles) {
+          try {
+            await attachmentService.upload({ file, ticketId: createdTicket.id });
+          } catch (err) {
+            console.error('Dosya yüklenemedi:', file.name, err);
+          }
+        }
+      }
+
+      toast.success('Bilet başarıyla oluşturuldu.');
       setIsModalOpen(false);
       setNewTicket({ title: '', description: '', priority: Priority.Low });
+      setNewTicketFiles([]);
       loadTickets(); // Reload list
     } catch (err: any) {
       alert(err.message || 'Oluşturulamadı.');
@@ -139,10 +226,12 @@ const Tickets: React.FC = () => {
         priority: selectedTicket.priority,
         assigneeId: selectedTicket.assigneeId || null,
         departmentId: selectedTicket.departmentId || null,
+        deviceId: selectedTicket.deviceId || null,
         resolutionReport: updateStatusData.report || null
       });
       setIsStatusModalOpen(false);
       setSelectedTicket(null);
+      toast.success('Talep durumu başarıyla güncellendi.');
       loadTickets();
     } catch (err: any) {
       alert(err.message || 'Güncelleme başarısız oldu.');
@@ -164,10 +253,12 @@ const Tickets: React.FC = () => {
         priority: editTicketData.priority,
         assigneeId: selectedTicket.assigneeId || null,
         departmentId: selectedTicket.departmentId || null,
+        deviceId: selectedTicket.deviceId || null,
         resolutionReport: selectedTicket.resolutionReport || null
       });
       setIsEditModalOpen(false);
       setSelectedTicket(null);
+      toast.success('Talep başarıyla güncellendi.');
       loadTickets();
     } catch (err: any) {
       alert(err.message || 'Güncelleme başarısız oldu.');
@@ -175,6 +266,46 @@ const Tickets: React.FC = () => {
       setIsEditing(false);
     }
   };
+
+  const handleSendComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !newCommentContent.trim()) return;
+    try {
+      setIsSendingComment(true);
+      await commentService.create({
+        ticketId: selectedTicket.id,
+        userId: authService.getUserId() || '',
+        content: newCommentContent
+      });
+      setNewCommentContent('');
+      loadComments(selectedTicket.id);
+    } catch (err: any) {
+      alert(err.message || 'Yorum gönderilemedi.');
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedTicket || !e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    try {
+      setIsUploading(true);
+      await attachmentService.upload({
+        file,
+        ticketId: selectedTicket.id
+      });
+      loadAttachments(selectedTicket.id);
+      toast.success('Dosya yüklendi');
+    } catch (err: any) {
+      toast.error(err.message || 'Dosya yüklenemedi');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+
 
   const handleSort = (key: keyof TicketResponseDto) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -193,7 +324,7 @@ const Tickets: React.FC = () => {
         if (filterType === 'resolved') return t.status === TicketStatus.Resolved;
         if (filterType === 'open') return t.status === TicketStatus.Open;
         if (filterType === 'inProgress') return t.status === TicketStatus.InProgress;
-        if (filterType === 'unresolved') return t.status === TicketStatus.Open || t.status === TicketStatus.InProgress;
+        if (filterType === 'unresolved') return t.status === TicketStatus.Open || t.status === TicketStatus.InProgress || t.status === TicketStatus.WaitingForUser;
         return true;
       });
     }
@@ -258,6 +389,7 @@ const Tickets: React.FC = () => {
                priority: ticket.priority,
                assigneeId: ticket.assigneeId || null,
                departmentId: ticket.departmentId || null,
+               deviceId: ticket.deviceId || null,
                resolutionReport: 'Toplu işlem ile çözüldü olarak işaretlendi.'
             });
          }
@@ -286,6 +418,7 @@ const Tickets: React.FC = () => {
     switch (status) {
       case TicketStatus.Open: return <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Açık</span>;
       case TicketStatus.InProgress: return <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">İşlemde</span>;
+      case TicketStatus.WaitingForUser: return <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Kullanıcı Bekleniyor</span>;
       case TicketStatus.Resolved: return <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">Çözüldü</span>;
       case TicketStatus.Closed: return <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">Kapalı</span>;
       default: return null;
@@ -386,8 +519,8 @@ const Tickets: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex items-center justify-between shrink-0">
         <h2 className="text-2xl font-bold text-slate-800">{isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim'}</h2>
         {!isAdmin && (
           <button 
@@ -401,12 +534,12 @@ const Tickets: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">{error}</div>
+        <div className="p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 shrink-0">{error}</div>
       )}
 
       {/* Bulk Action Panel */}
       {selectedTicketIds.length > 0 && (
-        <div className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl flex flex-wrap items-center justify-between shadow-sm animate-fade-in-down gap-4">
+        <div className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl flex flex-wrap items-center justify-between shadow-sm animate-fade-in-down gap-4 shrink-0">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg">
                 {selectedTicketIds.length}
@@ -440,10 +573,10 @@ const Tickets: React.FC = () => {
       )}
 
       {/* Table Container */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-0">
         
         {/* Filters */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-2">
               <button 
@@ -492,6 +625,21 @@ const Tickets: React.FC = () => {
           
           {/* Date Filters */}
           <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200">
+             <div className="flex flex-wrap gap-2">
+                <button onClick={() => setDateRange([null, null])} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${!startDate ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Tüm Zamanlar</button>
+                <button onClick={() => { const today = new Date(); setDateRange([today, today]); }} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${startDate && startDate.toDateString() === new Date().toDateString() && endDate?.toDateString() === new Date().toDateString() ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Bugün</button>
+                <button onClick={() => { 
+                  const today = new Date(); 
+                  const lastWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+                  setDateRange([lastWeek, today]);
+                }} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${startDate && startDate.toDateString() === new Date(new Date().setDate(new Date().getDate() - 7)).toDateString() ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Son 7 Gün</button>
+                <button onClick={() => { 
+                  const today = new Date(); 
+                  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                  setDateRange([lastMonth, today]);
+                }} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${startDate && startDate.toDateString() === new Date(new Date().setMonth(new Date().getMonth() - 1)).toDateString() ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Son 30 Gün</button>
+             </div>
+             <div className="h-8 w-px bg-slate-200 mx-2"></div>
              <div className="flex items-center gap-3">
                 <label className="text-sm font-semibold text-slate-600">Tarih Aralığı:</label>
                 <div className="relative z-50">
@@ -514,10 +662,10 @@ const Tickets: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
+              <tr className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
                 <th className="px-3 py-4 w-12 text-center border-r border-slate-100">
                   <input 
                     type="checkbox" 
@@ -558,7 +706,7 @@ const Tickets: React.FC = () => {
                 </tr>
               ) : (
                 sortedTickets.map((ticket) => (
-                  <tr key={ticket.id} onClick={() => setSelectedTicket(ticket)} className={`transition-colors cursor-pointer group ${selectedTicketIds.includes(ticket.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
+                  <tr key={ticket.id} onClick={() => { setSelectedTicket(ticket); setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 })); loadComments(ticket.id); loadAttachments(ticket.id); }} className={`transition-colors cursor-pointer group ${selectedTicketIds.includes(ticket.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
                     <td className="px-3 py-4 text-center border-r border-slate-50" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox" 
@@ -567,12 +715,12 @@ const Tickets: React.FC = () => {
                         className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
                       />
                     </td>
-                    <td className="px-3 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-800">{ticket.title}</span>
-                        {ticket.isEscalated && (
-                          <span title="Gecikmiş Talep!" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-100 text-rose-600">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <td className="px-3 py-4 border-r border-slate-50">
+                      <div className="font-semibold text-slate-800 flex items-center gap-2">
+                        {ticket.title}
+                        {unreadMessages[ticket.id] > 0 && (
+                          <span className="flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full shadow-sm animate-pulse">
+                            {unreadMessages[ticket.id]}
                           </span>
                         )}
                       </div>
@@ -593,17 +741,17 @@ const Tickets: React.FC = () => {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (Number(ticket.status) === TicketStatus.Resolved || Number(ticket.status) === TicketStatus.Closed) {
-                               alert("Bu talep zaten çözülmüş veya kapatılmış.");
-                               return;
-                            }
                             setSelectedTicket(ticket);
+                            setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 }));
+                            loadComments(ticket.id);
+                            loadAttachments(ticket.id);
                             setUpdateStatusData({ status: TicketStatus.Resolved, report: '' });
                             setIsStatusModalOpen(true);
                           }}
-                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Durum Güncelle"
                         >
-                          Durum Güncelle
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
                       )}
                       {!isAdmin && ticket.status === TicketStatus.Open && (
@@ -611,12 +759,16 @@ const Tickets: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedTicket(ticket);
+                            setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 }));
+                            loadComments(ticket.id);
+                            loadAttachments(ticket.id);
                             setEditTicketData({ id: ticket.id, title: ticket.title, description: ticket.description, priority: ticket.priority, deviceId: ticket.deviceId || null });
                             setIsEditModalOpen(true);
                           }}
-                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Düzenle"
                         >
-                          Düzenle
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
                       )}
                       <button 
@@ -624,9 +776,10 @@ const Tickets: React.FC = () => {
                           e.stopPropagation();
                           handleDeleteTicket(ticket.id);
                         }}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="İptal Et"
                       >
-                        İptal Et
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
                     </td>
                   </tr>
@@ -696,6 +849,43 @@ const Tickets: React.FC = () => {
                   ))}
                 </select>
               </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Ek Dosyalar</label>
+                <input 
+                  type="file" 
+                  multiple 
+                  ref={newTicketFileInputRef} 
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setNewTicketFiles(Array.from(e.target.files));
+                    }
+                  }} 
+                  className="hidden" 
+                />
+                <div className="flex flex-col gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => newTicketFileInputRef.current?.click()} 
+                    className="w-fit text-xs font-semibold px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    + Dosya Seç
+                  </button>
+                  {newTicketFiles.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {newTicketFiles.map((file, i) => (
+                        <div key={i} className="px-3 py-1 bg-sky-50 text-sky-700 rounded-full text-xs font-medium border border-sky-100 flex items-center gap-2">
+                          {file.name}
+                          <button type="button" onClick={() => setNewTicketFiles(files => files.filter((_, index) => index !== i))} className="text-sky-400 hover:text-rose-500">
+                            &times;
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
                   İptal
@@ -712,79 +902,243 @@ const Tickets: React.FC = () => {
       {/* Ticket Details Modal */}
       {selectedTicket && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicket(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-100 overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-100 flex flex-col overflow-hidden max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <h3 className="text-xl font-bold text-slate-800">{selectedTicket.title}</h3>
               <button onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-rose-500 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <div className="p-6">
-              <div className="flex gap-2 mb-6 flex-wrap">
-                {getStatusBadge(selectedTicket.status)}
-                {getPriorityBadge(selectedTicket.priority)}
-                {selectedTicket.isEscalated && (
-                  <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200">Gecikmiş Talep</span>
-                )}
-                <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-100">
-                  <span className="opacity-70 mr-1">Talep Eden:</span> {selectedTicket.requesterName || 'Bilinmiyor'}
-                </span>
-                <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
-                  <span className="opacity-70 mr-1">Departman:</span> {selectedTicket.departmentName || 'Belirtilmedi'}
-                </span>
-                {selectedTicket.deviceName && (
-                  <span className="px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold border border-teal-100">
-                    <span className="opacity-70 mr-1">Cihaz:</span> {selectedTicket.deviceName}
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6 bg-slate-50/80 p-5 rounded-2xl border border-slate-100">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Durum
                   </span>
+                  <div>{getStatusBadge(selectedTicket.status)}</div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Öncelik
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {getPriorityBadge(selectedTicket.priority)}
+                    {selectedTicket.isEscalated && (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 shadow-sm">Gecikmiş</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Oluşturulma
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    {new Date(selectedTicket.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Talep Eden
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shadow-sm">
+                      {(selectedTicket.requesterName || 'B').charAt(0)}
+                    </div>
+                    <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.requesterName}>{selectedTicket.requesterName || 'Bilinmiyor'}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    Departman
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.departmentName}>{selectedTicket.departmentName || 'Belirtilmedi'}</span>
+                </div>
+                {(Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                      Çözülme
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {selectedTicket.resolvedAt 
+                        ? new Date(selectedTicket.resolvedAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        : 'Belirtilmedi'}
+                    </span>
+                  </div>
                 )}
-                <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium ml-auto">
-                  {new Date(selectedTicket.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </span>
+                {selectedTicket.deviceName && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                      İlgili Cihaz
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.deviceName}>{selectedTicket.deviceName}</span>
+                  </div>
+                )}
               </div>
+              
               <h4 className="text-sm font-semibold text-slate-700 mb-2">Açıklama:</h4>
-              <p className="text-slate-600 bg-slate-50/50 border border-slate-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed max-h-60 overflow-y-auto overflow-x-hidden">
+              <p className="text-slate-600 bg-slate-50/50 border border-slate-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
                 {selectedTicket.description}
               </p>
               
               {selectedTicket.resolutionReport && (
                 <div className="mt-6">
                   <h4 className="text-sm font-semibold text-slate-700 mb-2">Durum Notu / Rapor:</h4>
-                  <p className="text-slate-600 bg-blue-50/50 border border-blue-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed max-h-60 overflow-y-auto overflow-x-hidden">
+                  <p className="text-slate-600 bg-blue-50/50 border border-blue-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
                     {selectedTicket.resolutionReport}
                   </p>
                 </div>
               )}
-              <div className="mt-6 flex justify-end gap-3">
-                {isAdmin && Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
-                  <button 
-                    onClick={() => {
-                        if (Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) {
-                           alert("Bu talep zaten çözülmüş veya kapatılmış.");
-                           return;
-                        }
-                        setUpdateStatusData({ status: TicketStatus.Resolved, report: '' });
-                        setIsStatusModalOpen(true);
-                    }} 
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
-                  >
-                    Durum Güncelle
-                  </button>
+
+              {/* Attachments Section */}
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    Ek Dosyalar ({attachments.length})
+                  </h4>
+                  <div>
+                    {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
+                      <React.Fragment>
+                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                        <button 
+                          onClick={() => fileInputRef.current?.click()} 
+                          disabled={isUploading}
+                          className="text-xs font-semibold px-3 py-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {isUploading ? 'Yükleniyor...' : '+ Dosya Ekle'}
+                        </button>
+                      </React.Fragment>
+                    )}
+                  </div>
+                </div>
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {attachments.map(att => (
+                      <div key={att.id} className="flex flex-col border border-slate-200 rounded-xl overflow-hidden hover:border-sky-300 transition-colors bg-white w-48">
+                        <a 
+                          href={`http://localhost:5014${att.filePath}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-3 p-3 group"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                          </div>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-sm font-medium text-slate-700 truncate" title={att.fileName}>{att.fileName}</span>
+                            <span className="text-xs text-slate-400">{(att.fileSize / 1024).toFixed(1)} KB</span>
+                          </div>
+                        </a>
+                        <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            {att.uploaderName || 'Bilinmiyor'} 
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {!isAdmin && selectedTicket.status === TicketStatus.Open && (
-                  <button 
-                    onClick={() => {
-                        setEditTicketData({ id: selectedTicket.id, title: selectedTicket.title, description: selectedTicket.description, priority: selectedTicket.priority, deviceId: selectedTicket.deviceId || null });
-                        setIsEditModalOpen(true);
-                    }} 
-                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
-                  >
-                    Düzenle
-                  </button>
-                )}
-                <button onClick={() => setSelectedTicket(null)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
-                  Kapat
-                </button>
               </div>
+
+
+              {/* Comments Section */}
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                  İletişim & Yorumlar ({comments.length})
+                </h4>
+                
+                <div className="space-y-4 mb-4 pr-2">
+                  {comments.length === 0 ? (
+                    <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-xl border border-slate-100">Henüz yorum yapılmamış.</p>
+                  ) : (
+                    comments.map(comment => {
+                      const isMe = comment.userId === authService.getUserId();
+                      return (
+                        <div key={comment.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-700 rounded-tl-none border border-slate-200'}`}>
+                            <div className="flex justify-between items-end gap-4 mb-1">
+                              <span className={`text-xs font-bold ${isMe ? 'text-indigo-200' : 'text-slate-500'}`}>{isMe ? 'Ben' : comment.userName}</span>
+                              <span className={`text-[10px] ${isMe ? 'text-indigo-300' : 'text-slate-400'}`}>
+                                {new Date(comment.createdAt).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                              </span>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap break-words">{comment.content}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed ? (
+                  <form onSubmit={handleSendComment} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCommentContent}
+                      onChange={e => setNewCommentContent(e.target.value)}
+                      placeholder="Bir mesaj yazın..."
+                      className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none text-sm transition-all"
+                      disabled={isSendingComment}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSendingComment || !newCommentContent.trim()}
+                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md shadow-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+                    >
+                      {isSendingComment ? (
+                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      ) : (
+                        'Gönder'
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm p-4 rounded-xl text-center">
+                    Bu talep çözüldüğü veya kapatıldığı için yeni mesaja kapalıdır.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 shrink-0">
+              {isAdmin && Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
+                <button 
+                  onClick={() => {
+                      if (Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) {
+                         alert("Bu talep zaten çözülmüş veya kapatılmış.");
+                         return;
+                      }
+                      setUpdateStatusData({ status: TicketStatus.Resolved, report: '' });
+                      setIsStatusModalOpen(true);
+                  }} 
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+                >
+                  Durum Güncelle
+                </button>
+              )}
+              {!isAdmin && selectedTicket.status === TicketStatus.Open && (
+                <button 
+                  onClick={() => {
+                      setEditTicketData({ id: selectedTicket.id, title: selectedTicket.title, description: selectedTicket.description, priority: selectedTicket.priority, deviceId: selectedTicket.deviceId || null });
+                      setIsEditModalOpen(true);
+                  }} 
+                  className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
+                >
+                  Düzenle
+                </button>
+              )}
+              <button onClick={() => setSelectedTicket(null)} className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl shadow-sm transition-colors">
+                Kapat
+              </button>
             </div>
           </div>
         </div>
@@ -809,6 +1163,7 @@ const Tickets: React.FC = () => {
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none"
                 >
                   <option value={TicketStatus.InProgress}>Devam Ediyor (İşlemde)</option>
+                  <option value={TicketStatus.WaitingForUser}>Kullanıcı Bekleniyor</option>
                   <option value={TicketStatus.Resolved}>Çözüldü</option>
                   <option value={TicketStatus.Closed}>Kapalı (İptal)</option>
                 </select>
