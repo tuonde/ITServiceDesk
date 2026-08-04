@@ -36,15 +36,29 @@ public class TicketManager : ITicketService
         _deviceRepository = deviceRepository;
     }
 
-    public async Task<PagedResponse<IEnumerable<TicketResponseDto>>> GetAllAsync(TicketFilterDto filter, Guid userId, bool isAdmin)
+    public async Task<PagedResponse<IEnumerable<TicketResponseDto>>> GetAllAsync(TicketFilterDto filter, Guid userId, IList<string> userRoles)
     {
-        Guid? requesterId = isAdmin ? null : userId;
+        var isAdmin = userRoles.Contains("Admin");
+        var isTechnician = userRoles.Contains("Technician");
+
+        Guid? exactRequesterId = null;
+        Guid? involvedUserId = null;
+
+        if (!isAdmin)
+        {
+            if (isTechnician)
+                involvedUserId = userId; // Technician sees where they are Requester or Assignee
+            else
+                exactRequesterId = userId; // Normal user sees only where they are Requester
+        }
+
         var (tickets, totalCount) = await _ticketRepository.GetPagedTicketsAsync(
             filter.PageNumber, 
             filter.PageSize, 
             filter.Status, 
             filter.Priority, 
-            requesterId,
+            exactRequesterId,
+            involvedUserId,
             filter.DeviceId);
 
         var dtos = _mapper.Map<IEnumerable<TicketResponseDto>>(tickets);
@@ -139,9 +153,18 @@ public class TicketManager : ITicketService
         // Notification for Status Change
         if (oldStatus != existingTicket.Status && existingTicket.RequesterId != Guid.Empty)
         {
+            string statusMessage = existingTicket.Status switch
+            {
+                TicketStatus.Resolved => $"Talebiniz çözüldü: {existingTicket.Title}",
+                TicketStatus.Closed => $"Talebiniz kapatıldı: {existingTicket.Title}",
+                TicketStatus.InProgress => $"Talebiniz işleme alındı: {existingTicket.Title}",
+                TicketStatus.WaitingForUser => $"Talebiniz için işlem bekleniyor: {existingTicket.Title}",
+                _ => $"Talebinizin durumu güncellendi: {existingTicket.Title}"
+            };
+
             await _notificationService.CreateAndSendNotificationAsync(new DTOs.Notifications.NotificationCreateDto
             {
-                Message = $"Talebinizin durumu güncellendi: {existingTicket.Title}",
+                Message = statusMessage,
                 UserId = existingTicket.RequesterId,
                 RelatedTicketId = existingTicket.Id
             });

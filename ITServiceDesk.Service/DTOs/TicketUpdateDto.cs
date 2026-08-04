@@ -12,5 +12,7 @@ public class TicketUpdateDto
     public Guid? AssigneeId { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? DeviceId { get; set; }
+    public Guid? CategoryId { get; set; }
     public string? ResolutionReport { get; set; }
+    public decimal? RepairCost { get; set; }
 }

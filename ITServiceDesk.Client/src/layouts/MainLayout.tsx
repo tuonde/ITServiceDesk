@@ -20,8 +20,8 @@ const MainLayout: React.FC = () => {
   const isDepartmentsPage = location.pathname.startsWith('/departments');
   const isSettingsPage = location.pathname.startsWith('/settings');
   const isReportsPage = location.pathname.startsWith('/reports');
-  const role = authService.getUserRole();
-  const isAdmin = role === 'Admin';
+  const roles = authService.getUserRoles();
+  const isAdmin = authService.isAdmin();
   
   let pageTitle = 'Genel Bakış';
   if (isDashboardPage) pageTitle = 'Dashboard';
@@ -301,7 +301,7 @@ const MainLayout: React.FC = () => {
 
             <div className="text-right hidden sm:block">
               <div className="text-sm font-bold text-slate-800">{authService.getUserFullName() || 'Kullanıcı'}</div>
-              <div className="text-xs font-semibold text-slate-500">{authService.getUserRole() || 'Bilinmiyor'}</div>
+              <div className="text-xs font-semibold text-slate-500">{roles.join(', ') || 'Bilinmiyor'}</div>
             </div>
             <Link 
               to="/profile" 

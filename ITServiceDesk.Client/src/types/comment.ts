@@ -6,10 +6,12 @@ export interface CommentResponseDto {
     userRole: string;
     content: string;
     createdAt: string;
+    isInternal: boolean;
 }
 
 export interface CommentCreateDto {
     ticketId: string;
     userId: string;
     content: string;
+    isInternal: boolean;
 }

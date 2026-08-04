@@ -10,6 +10,10 @@ import { TicketStatus, Priority, type TicketResponseDto, type TicketCreateDto } 
 import type { CommentResponseDto } from '../types/comment';
 import type { AttachmentResponseDto } from '../types/attachment';
 import { type DeviceDto, DeviceStatus } from '../types/device';
+import { type TicketCategoryDto } from '../types/ticketCategory';
+import { ticketCategoryService } from '../services/ticketCategoryService';
+import { type UserListDto } from '../types/user';
+import { userService } from '../services/userService';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
@@ -21,10 +25,13 @@ import 'react-datepicker/dist/react-datepicker.css';
 registerLocale('tr', tr);
 
 const Tickets: React.FC = () => {
-  const isAdmin = authService.getUserRole() === 'Admin';
+  const isAdmin = authService.isAdmin();
+  const isTechnician = authService.isTechnician();
   
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
   const [devices, setDevices] = useState<DeviceDto[]>([]);
+  const [ticketCategories, setTicketCategories] = useState<TicketCategoryDto[]>([]);
+  const [assignees, setAssignees] = useState<UserListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,23 +52,25 @@ const Tickets: React.FC = () => {
     title: '',
     description: '',
     priority: Priority.Low,
-    deviceId: null
+    deviceId: null,
+    categoryId: null
   });
   const [isCreating, setIsCreating] = useState(false);
   
   // Status Update Modal State
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [updateStatusData, setUpdateStatusData] = useState({ status: TicketStatus.Resolved, report: '' });
+  const [updateStatusData, setUpdateStatusData] = useState<{ status: TicketStatus, report: string, assigneeId: string | null, repairCost: number | null }>({ status: TicketStatus.Resolved, report: '', assigneeId: null, repairCost: null });
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Edit Ticket Modal State (User)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editTicketData, setEditTicketData] = useState<{ id: string, title: string, description: string, priority: Priority, deviceId: string | null }>({ id: '', title: '', description: '', priority: Priority.Low, deviceId: null });
+  const [editTicketData, setEditTicketData] = useState<{ id: string, title: string, description: string, priority: Priority, deviceId: string | null, categoryId: string | null }>({ id: '', title: '', description: '', priority: Priority.Low, deviceId: null, categoryId: null });
   const [isEditing, setIsEditing] = useState(false);
 
   // Comments State
   const [comments, setComments] = useState<CommentResponseDto[]>([]);
   const [newCommentContent, setNewCommentContent] = useState('');
+  const [isInternalComment, setIsInternalComment] = useState(false);
   const [isSendingComment, setIsSendingComment] = useState(false);
 
   // Attachments State
@@ -79,6 +88,8 @@ const Tickets: React.FC = () => {
   useEffect(() => {
     loadTickets();
     loadDevices();
+    loadCategories();
+    loadAssignees();
 
     const handleSignalREvent = (ticket: TicketResponseDto) => {
       const currentUserId = authService.getUserId();
@@ -162,10 +173,33 @@ const Tickets: React.FC = () => {
 
   const loadDevices = async () => {
     try {
-      const allDevices = await deviceService.getAll();
-      setDevices(allDevices.filter(d => d.status === DeviceStatus.Active));
+      const data = await deviceService.getAvailable();
+      setDevices(data.filter(d => d.status === DeviceStatus.Active));
     } catch (err) {
       console.error("Cihazlar yüklenemedi", err);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const data = await ticketCategoryService.getAll();
+      setTicketCategories(data);
+    } catch (err) {
+      console.error("Kategoriler yüklenemedi", err);
+    }
+  };
+
+  const loadAssignees = async () => {
+    if (!isAdmin) return;
+    try {
+      const response = await userService.getAll();
+      if (response.data) {
+        // Sadece Admin veya Teknisyen olanları getir
+        const staff = response.data.filter(u => u.roles.includes('Admin') || u.roles.includes('Technician'));
+        setAssignees(staff);
+      }
+    } catch (err) {
+      console.error("Personel listesi yüklenemedi", err);
     }
   };
 
@@ -224,10 +258,12 @@ const Tickets: React.FC = () => {
         description: selectedTicket.description,
         status: updateStatusData.status,
         priority: selectedTicket.priority,
-        assigneeId: selectedTicket.assigneeId || null,
+        assigneeId: updateStatusData.assigneeId,
         departmentId: selectedTicket.departmentId || null,
         deviceId: selectedTicket.deviceId || null,
-        resolutionReport: updateStatusData.report || null
+        categoryId: selectedTicket.categoryId || null,
+        resolutionReport: updateStatusData.report || null,
+        repairCost: updateStatusData.repairCost || null
       });
       setIsStatusModalOpen(false);
       setSelectedTicket(null);
@@ -275,9 +311,11 @@ const Tickets: React.FC = () => {
       await commentService.create({
         ticketId: selectedTicket.id,
         userId: authService.getUserId() || '',
-        content: newCommentContent
+        content: newCommentContent,
+        isInternal: isInternalComment
       });
       setNewCommentContent('');
+      setIsInternalComment(false);
       loadComments(selectedTicket.id);
     } catch (err: any) {
       alert(err.message || 'Yorum gönderilemedi.');
@@ -745,7 +783,7 @@ const Tickets: React.FC = () => {
                             setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 }));
                             loadComments(ticket.id);
                             loadAttachments(ticket.id);
-                            setUpdateStatusData({ status: TicketStatus.Resolved, report: '' });
+                            setUpdateStatusData({ status: TicketStatus.Resolved, report: '', assigneeId: ticket.assigneeId || null, repairCost: ticket.repairCost || null });
                             setIsStatusModalOpen(true);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -762,7 +800,7 @@ const Tickets: React.FC = () => {
                             setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 }));
                             loadComments(ticket.id);
                             loadAttachments(ticket.id);
-                            setEditTicketData({ id: ticket.id, title: ticket.title, description: ticket.description, priority: ticket.priority, deviceId: ticket.deviceId || null });
+                            setEditTicketData({ id: ticket.id, title: ticket.title, description: ticket.description, priority: ticket.priority, deviceId: ticket.deviceId || null, categoryId: ticket.categoryId || null });
                             setIsEditModalOpen(true);
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -796,7 +834,7 @@ const Tickets: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-800">Yeni Bilet Oluştur</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
@@ -834,6 +872,19 @@ const Tickets: React.FC = () => {
                   <option value={2}>Orta</option>
                   <option value={3}>Yüksek</option>
                   <option value={4}>Kritik</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori (Opsiyonel)</label>
+                <select 
+                  value={newTicket.categoryId || ''}
+                  onChange={e => setNewTicket({...newTicket, categoryId: e.target.value || null})}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none"
+                >
+                  <option value="">Kategori Seçiniz...</option>
+                  {ticketCategories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -951,6 +1002,20 @@ const Tickets: React.FC = () => {
                     <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.requesterName}>{selectedTicket.requesterName || 'Bilinmiyor'}</span>
                   </div>
                 </div>
+                {selectedTicket.assigneeName && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                      Atanan Kişi
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shadow-sm">
+                        {selectedTicket.assigneeName.charAt(0)}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.assigneeName}>{selectedTicket.assigneeName}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
@@ -993,6 +1058,16 @@ const Tickets: React.FC = () => {
                   <p className="text-slate-600 bg-blue-50/50 border border-blue-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
                     {selectedTicket.resolutionReport}
                   </p>
+                </div>
+              )}
+              
+              {selectedTicket.repairCost !== null && selectedTicket.repairCost > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Onarım / Parça Maliyeti:</h4>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-100">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    {selectedTicket.repairCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                  </div>
                 </div>
               )}
 
@@ -1071,7 +1146,10 @@ const Tickets: React.FC = () => {
                                 {new Date(comment.createdAt).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
                               </span>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap break-words">{comment.content}</p>
+                            {comment.isInternal && (
+                                <span className="px-2 py-0.5 ml-2 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md uppercase tracking-wider">Gizli Not</span>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap break-words mt-1">{comment.content}</p>
                           </div>
                         </div>
                       );
@@ -1080,8 +1158,20 @@ const Tickets: React.FC = () => {
                 </div>
 
                 {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed ? (
-                  <form onSubmit={handleSendComment} className="flex gap-2">
-                    <input
+                  <form onSubmit={handleSendComment} className="flex flex-col gap-2">
+                    {(isAdmin || isTechnician) && (
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 self-end">
+                        <input
+                          type="checkbox"
+                          checked={isInternalComment}
+                          onChange={(e) => setIsInternalComment(e.target.checked)}
+                          className="w-4 h-4 text-rose-600 bg-slate-100 border-slate-300 rounded focus:ring-rose-500 focus:ring-2"
+                        />
+                        Gizli Not (Sadece Admin/Teknisyen görebilir)
+                      </label>
+                    )}
+                    <div className="flex gap-2">
+                      <input
                       type="text"
                       value={newCommentContent}
                       onChange={e => setNewCommentContent(e.target.value)}
@@ -1100,6 +1190,7 @@ const Tickets: React.FC = () => {
                         'Gönder'
                       )}
                     </button>
+                    </div>
                   </form>
                 ) : (
                   <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm p-4 rounded-xl text-center">
@@ -1117,7 +1208,7 @@ const Tickets: React.FC = () => {
                          alert("Bu talep zaten çözülmüş veya kapatılmış.");
                          return;
                       }
-                      setUpdateStatusData({ status: TicketStatus.Resolved, report: '' });
+                      setUpdateStatusData({ status: TicketStatus.Resolved, report: '', assigneeId: selectedTicket.assigneeId || null, repairCost: selectedTicket.repairCost || null });
                       setIsStatusModalOpen(true);
                   }} 
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
@@ -1128,7 +1219,7 @@ const Tickets: React.FC = () => {
               {!isAdmin && selectedTicket.status === TicketStatus.Open && (
                 <button 
                   onClick={() => {
-                      setEditTicketData({ id: selectedTicket.id, title: selectedTicket.title, description: selectedTicket.description, priority: selectedTicket.priority, deviceId: selectedTicket.deviceId || null });
+                      setEditTicketData({ id: selectedTicket.id, title: selectedTicket.title, description: selectedTicket.description, priority: selectedTicket.priority, deviceId: selectedTicket.deviceId || null, categoryId: selectedTicket.categoryId || null });
                       setIsEditModalOpen(true);
                   }} 
                   className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
@@ -1168,6 +1259,21 @@ const Tickets: React.FC = () => {
                   <option value={TicketStatus.Closed}>Kapalı (İptal)</option>
                 </select>
               </div>
+              {isAdmin && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Atanan Kişi (Opsiyonel)</label>
+                  <select 
+                    value={updateStatusData.assigneeId || ''}
+                    onChange={e => setUpdateStatusData({...updateStatusData, assigneeId: e.target.value || null})}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none"
+                  >
+                    <option value="">Atama Yapılmadı</option>
+                    {assignees.map(u => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.roles.join(', ')})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Rapor / Not (Opsiyonel)</label>
                 <textarea 
@@ -1175,9 +1281,22 @@ const Tickets: React.FC = () => {
                   onChange={e => setUpdateStatusData({...updateStatusData, report: e.target.value})}
                   rows={4}
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none resize-none"
-                  placeholder="Dış ekip bekleniyor, çözüm notu vs..."
                 />
               </div>
+              {updateStatusData.status === TicketStatus.Resolved && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Onarım / Parça Maliyeti (Opsiyonel - ₺)</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    min="0"
+                    value={updateStatusData.repairCost || ''}
+                    onChange={e => setUpdateStatusData({...updateStatusData, repairCost: e.target.value ? Number(e.target.value) : null})}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none"
+                    placeholder="Örn: 1500.50"
+                  />
+                </div>
+              )}
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setIsStatusModalOpen(false)} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
                   İptal
@@ -1233,6 +1352,19 @@ const Tickets: React.FC = () => {
                   <option value={2}>Orta</option>
                   <option value={3}>Yüksek</option>
                   <option value={4}>Kritik</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori (Opsiyonel)</label>
+                <select 
+                  value={editTicketData.categoryId || ''}
+                  onChange={e => setEditTicketData({...editTicketData, categoryId: e.target.value || null})}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none"
+                >
+                  <option value="">Kategori Seçiniz...</option>
+                  {ticketCategories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
               <div>

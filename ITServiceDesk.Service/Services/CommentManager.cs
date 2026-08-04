@@ -26,13 +26,18 @@ public class CommentManager : ICommentService
         _notificationService = notificationService;
     }
 
-    public async Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId)
+    public async Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId, bool isInternalViewer)
     {
-        var comments = await _repository.Query()
+        var query = _repository.Query()
             .Include(c => c.User)
-            .Where(x => x.TicketId == ticketId)
-            .OrderBy(x => x.CreatedAt)
-            .ToListAsync();
+            .Where(x => x.TicketId == ticketId);
+            
+        if (!isInternalViewer)
+        {
+            query = query.Where(x => !x.IsInternal);
+        }
+            
+        var comments = await query.OrderBy(x => x.CreatedAt).ToListAsync();
         return _mapper.Map<IEnumerable<CommentResponseDto>>(comments);
     }
 
@@ -69,7 +74,11 @@ public class CommentManager : ICommentService
             }
         }
 
-        return _mapper.Map<CommentResponseDto>(comment);
+        var createdComment = await _repository.Query()
+            .Include(c => c.User)
+            .FirstOrDefaultAsync(c => c.Id == comment.Id);
+
+        return _mapper.Map<CommentResponseDto>(createdComment ?? comment);
     }
 
     public async Task<CommentResponseDto> UpdateAsync(Guid id, CommentUpdateDto dto)

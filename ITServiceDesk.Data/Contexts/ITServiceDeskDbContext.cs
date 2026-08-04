@@ -22,6 +22,7 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
     public DbSet<SystemSetting> SystemSettings { get; set; }
     public DbSet<Device> Devices { get; set; }
     public DbSet<DeviceCategory> DeviceCategories { get; set; }
+    public DbSet<TicketCategory> TicketCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

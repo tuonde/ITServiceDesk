@@ -14,14 +14,28 @@ export const userService = {
     },
 
     create: async (data: UserCreateDto): Promise<ApiResponse<UserListDto>> => {
-        const response = await api.post<ApiResponse<UserListDto>>('/api/Users', data);
-        return response.data;
+        try {
+            const response = await api.post<ApiResponse<UserListDto>>('/api/Users', data);
+            return response.data;
+        } catch (error: any) {
+            if (error.response && error.response.data && error.response.data.message) {
+                throw new Error(error.response.data.message);
+            }
+            throw error;
+        }
     },
 
     update: async (data: UserUpdateDto): Promise<ApiResponse<UserListDto>> => {
-        const { id, ...rest } = data;
-        const response = await api.put<ApiResponse<UserListDto>>(`/api/Users/${id}`, rest);
-        return response.data;
+        try {
+            const { id, ...rest } = data;
+            const response = await api.put<ApiResponse<UserListDto>>(`/api/Users/${id}`, rest);
+            return response.data;
+        } catch (error: any) {
+            if (error.response && error.response.data && error.response.data.message) {
+                throw new Error(error.response.data.message);
+            }
+            throw error;
+        }
     },
 
     toggleStatus: async (id: string): Promise<void> => {

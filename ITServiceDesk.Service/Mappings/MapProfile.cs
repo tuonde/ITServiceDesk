@@ -15,6 +15,7 @@ public class MapProfile : Profile
         // Tickets
         CreateMap<Ticket, TicketResponseDto>()
             .ForMember(dest => dest.RequesterName, opt => opt.MapFrom(src => src.Requester != null ? src.Requester.FirstName + " " + src.Requester.LastName : "Bilinmiyor"))
+            .ForMember(dest => dest.AssigneeName, opt => opt.MapFrom(src => src.Assignee != null ? src.Assignee.FirstName + " " + src.Assignee.LastName : null))
             .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : "Bilinmiyor"))
             .ForMember(dest => dest.DeviceName, opt => opt.MapFrom(src => src.Device != null ? src.Device.Name : null));
         CreateMap<TicketCreateDto, Ticket>();
@@ -46,5 +47,10 @@ public class MapProfile : Profile
 
         // AuditLogs
         CreateMap<AuditLog, AuditLogDto>();
+        
+        // Ticket Category Mapping
+        CreateMap<TicketCategory, TicketCategoryDto>().ReverseMap();
+        CreateMap<TicketCategoryCreateDto, TicketCategory>();
+        CreateMap<TicketCategoryUpdateDto, TicketCategory>();
     }
 }

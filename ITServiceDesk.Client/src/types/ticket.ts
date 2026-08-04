@@ -27,10 +27,14 @@ export interface TicketResponseDto {
     requesterId: string;
     requesterName?: string;
     assigneeId: string | null;
+    assigneeName?: string;
     departmentId: string | null;
     departmentName?: string;
     deviceId: string | null;
     deviceName?: string;
+    categoryId: string | null;
+    categoryName: string | null;
+    repairCost: number | null;
     resolutionReport: string | null;
 }
 
@@ -40,6 +44,7 @@ export interface TicketCreateDto {
     priority: Priority;
     departmentId?: string | null;
     deviceId?: string | null;
+    categoryId?: string | null;
 }
 
 export interface TicketUpdateDto {
@@ -51,7 +56,9 @@ export interface TicketUpdateDto {
     assigneeId?: string | null;
     departmentId?: string | null;
     deviceId?: string | null;
+    categoryId?: string | null;
     resolutionReport: string | null;
+    repairCost?: number | null;
 }
 
 export interface TicketFilterDto {

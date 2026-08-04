@@ -3,14 +3,16 @@ import { Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { ticketService } from '../services/ticketService';
 import { type TicketResponseDto, TicketStatus } from '../types/ticket';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { signalrService } from '../services/signalrService';
+import { userService } from '../services/userService';
+import { type UserListDto } from '../types/user';
 
 const Dashboard: React.FC = () => {
-  const role = authService.getUserRole();
-  const isAdmin = role === 'Admin';
+  const isAdmin = authService.isAdmin();
 
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
+  const [assignees, setAssignees] = useState<UserListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,8 +44,14 @@ const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const response = await ticketService.getAll({ pageNumber: 1, pageSize: 100 });
-      setTickets(response.data || []);
+      const [ticketsResponse, usersResponse] = await Promise.all([
+        ticketService.getAll({ pageNumber: 1, pageSize: 100 }),
+        isAdmin ? userService.getAll() : Promise.resolve({ data: [] })
+      ]);
+      setTickets(ticketsResponse.data || []);
+      if (isAdmin && usersResponse.data) {
+        setAssignees(usersResponse.data.filter((u: UserListDto) => u.roles.includes('Admin') || u.roles.includes('Technician')));
+      }
     } catch (err) {
       console.error('Failed to load dashboard data', err);
     } finally {
@@ -121,6 +129,14 @@ const Dashboard: React.FC = () => {
       return dateA - dateB;
     })
     .slice(0, 4);
+
+  const workloadData = assignees.map(user => {
+    const activeTickets = tickets.filter(t => t.assigneeId === user.id && (t.status === TicketStatus.Open || t.status === TicketStatus.InProgress));
+    return {
+      name: `${user.firstName} ${user.lastName}`,
+      count: activeTickets.length
+    };
+  }).sort((a, b) => b.count - a.count);
 
   return (
     <div className="space-y-6">
@@ -214,8 +230,8 @@ const Dashboard: React.FC = () => {
         {/* Charts Section for Admin */}
         {isAdmin && (
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-            <h3 className="text-lg font-bold text-slate-800 mb-6">Talep Analizi</h3>
-            <div className="grid grid-cols-1 gap-8">
+            <h3 className="text-lg font-bold text-slate-800 mb-6">Sistem Analizi</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full text-slate-400 md:col-span-2">Yükleniyor...</div>
               ) : tickets.length === 0 ? (
@@ -245,6 +261,23 @@ const Dashboard: React.FC = () => {
                         />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Workload Distribution */}
+                  <div className="flex flex-col">
+                    <h4 className="text-sm font-semibold text-slate-500 mb-4 text-center">İş Yükü Dağılımı (Açık ve İşlemdeki Talepler)</h4>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={workloadData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <RechartsTooltip 
+                          cursor={{ fill: '#f1f5f9' }}
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} name="Aktif Talep" />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </>

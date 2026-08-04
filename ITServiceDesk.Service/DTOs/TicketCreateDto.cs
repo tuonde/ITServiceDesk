@@ -10,6 +10,8 @@ public class TicketCreateDto
     public Priority Priority { get; set; }
     public Guid? DepartmentId { get; set; }
     public Guid? DeviceId { get; set; }
+    public Guid? CategoryId { get; set; }
+    public decimal? RepairCost { get; set; }
     
     [JsonIgnore]
     public Guid RequesterId { get; set; }

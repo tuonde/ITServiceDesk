@@ -18,7 +18,8 @@ public class CommentsController : ControllerBase
     [HttpGet("ticket/{ticketId}")]
     public async Task<IActionResult> GetByTicketId(Guid ticketId)
     {
-        var result = await _service.GetAllByTicketIdAsync(ticketId);
+        bool isInternalViewer = User.IsInRole("Admin") || User.IsInRole("Technician");
+        var result = await _service.GetAllByTicketIdAsync(ticketId, isInternalViewer);
         return Ok(ApiResponse<IEnumerable<CommentResponseDto>>.Success(result));
     }
 

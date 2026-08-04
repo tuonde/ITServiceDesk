@@ -14,4 +14,7 @@ public class DeviceDto
     
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
+    
+    public Guid? AssignedUserId { get; set; }
+    public string? AssignedUserName { get; set; }
 }

@@ -20,8 +20,11 @@ public class Ticket : BaseEntity
     
     // Status Report
     public string? ResolutionReport { get; set; }
+    public decimal? RepairCost { get; set; }
     
     // Navigation Properties
+    public Guid? CategoryId { get; set; }
+    public TicketCategory? Category { get; set; }
     public Guid RequesterId { get; set; }
     public AppUser? Requester { get; set; }
     

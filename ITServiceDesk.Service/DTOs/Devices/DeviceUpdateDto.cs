@@ -10,4 +10,5 @@ public class DeviceUpdateDto
     public DeviceStatus Status { get; set; }
     public Guid CategoryId { get; set; }
     public Guid? DepartmentId { get; set; }
+    public Guid? AssignedUserId { get; set; }
 }

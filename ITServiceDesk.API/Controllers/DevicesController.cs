@@ -24,6 +24,17 @@ public class DevicesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("available")]
+    public async Task<IActionResult> GetAvailable()
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+            
+        var result = await _deviceService.GetAvailableForUserAsync(userId);
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {

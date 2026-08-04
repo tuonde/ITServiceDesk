@@ -19,11 +19,15 @@ public class TicketResponseDto
     public Guid RequesterId { get; set; }
     public string? RequesterName { get; set; }
     public Guid? AssigneeId { get; set; }
+    public string? AssigneeName { get; set; }
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }
     
     public Guid? DeviceId { get; set; }
     public string? DeviceName { get; set; }
+    public Guid? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
+    public decimal? RepairCost { get; set; }
     
     public string? ResolutionReport { get; set; }
 }

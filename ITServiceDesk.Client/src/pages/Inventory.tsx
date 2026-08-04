@@ -3,9 +3,11 @@ import { deviceService } from '../services/deviceService';
 import { deviceCategoryService } from '../services/deviceCategoryService';
 import { departmentService } from '../services/departmentService';
 import { ticketService } from '../services/ticketService';
+import { userService } from '../services/userService';
 import { type DeviceDto, type DeviceCreateDto, DeviceStatus, type DeviceCategoryDto } from '../types/device';
 import { type DepartmentResponseDto } from '../types/department';
 import { type TicketResponseDto, TicketStatus } from '../types/ticket';
+import { type UserListDto } from '../types/user';
 import { toast } from 'react-hot-toast';
 import CreatableSelect from 'react-select/creatable';
 
@@ -13,6 +15,7 @@ const Inventory: React.FC = () => {
   const [devices, setDevices] = useState<DeviceDto[]>([]);
   const [categories, setCategories] = useState<DeviceCategoryDto[]>([]);
   const [departments, setDepartments] = useState<DepartmentResponseDto[]>([]);
+  const [users, setUsers] = useState<UserListDto[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,12 +32,13 @@ const Inventory: React.FC = () => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState<DeviceCreateDto>({
+  const [formData, setFormData] = useState<DeviceCreateDto & { assignedUserId?: string | null }>({
     code: '',
     name: '',
     status: DeviceStatus.Active,
     categoryId: '',
-    departmentId: null
+    departmentId: null,
+    assignedUserId: null
   });
 
   useEffect(() => {
@@ -44,14 +48,16 @@ const Inventory: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [devs, cats, depts] = await Promise.all([
+      const [devs, cats, depts, usrs] = await Promise.all([
         deviceService.getAll(),
         deviceCategoryService.getAll(),
-        departmentService.getAll()
+        departmentService.getAll(),
+        userService.getAll()
       ]);
       setDevices(devs);
       setCategories(cats);
       setDepartments(depts.data || []);
+      setUsers(usrs.data || []);
     } catch (error) {
       console.error(error);
       toast.error('Veriler yüklenirken hata oluştu');
@@ -83,7 +89,8 @@ const Inventory: React.FC = () => {
         name: device.name,
         status: device.status,
         categoryId: device.categoryId,
-        departmentId: device.departmentId
+        departmentId: device.departmentId,
+        assignedUserId: device.assignedUserId
       });
     } else {
       setSelectedDevice(null);
@@ -92,7 +99,8 @@ const Inventory: React.FC = () => {
         name: '',
         status: DeviceStatus.Active,
         categoryId: categories.length > 0 ? categories[0].id : '',
-        departmentId: null
+        departmentId: null,
+        assignedUserId: null
       });
     }
     setIsModalOpen(true);
@@ -196,7 +204,6 @@ const Inventory: React.FC = () => {
     });
   }, [devices, searchQuery, statusFilter, departmentFilter]);
 
-  // KPI calculations
   const totalCount = devices.length;
   const activeCount = devices.filter(d => d.status === DeviceStatus.Active).length;
   const faultCount = devices.filter(d => d.status === DeviceStatus.Faulty || d.status === DeviceStatus.Maintenance).length;
@@ -236,7 +243,6 @@ const Inventory: React.FC = () => {
         </button>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
@@ -276,9 +282,7 @@ const Inventory: React.FC = () => {
         </div>
       </div>
 
-      {/* Main List */}
       <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-0">
-        {/* Filters */}
         <div className="p-4 border-b border-slate-100 flex gap-4 flex-wrap shrink-0">
           <div className="flex-1 min-w-[200px]">
             <input
@@ -310,7 +314,6 @@ const Inventory: React.FC = () => {
           </select>
         </div>
 
-        {/* Table */}
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50/80 text-slate-500 text-sm font-medium sticky top-0 z-10 backdrop-blur-sm">
@@ -361,7 +364,6 @@ const Inventory: React.FC = () => {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
@@ -435,12 +437,25 @@ const Inventory: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Departman (Konum)</label>
-                <select value={formData.departmentId || ''} onChange={e => setFormData({ ...formData, departmentId: e.target.value || null })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
-                  <option value="">Belirtilmedi</option>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Departman</label>
+                <select value={formData.departmentId || ''} onChange={e => {
+                  setFormData({ ...formData, departmentId: e.target.value || null, assignedUserId: null });
+                }} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
+                  <option value="">-- Departman Yok --</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
+              {formData.departmentId && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Zimmetli Personel</label>
+                  <select value={formData.assignedUserId || ''} onChange={e => setFormData({ ...formData, assignedUserId: e.target.value || null })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
+                    <option value="">-- Zimmet Yok (Ortak Kullanım) --</option>
+                    {users.filter(u => u.departmentId === formData.departmentId).map(u => (
+                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Durum</label>
                 <select value={formData.status} onChange={e => setFormData({ ...formData, status: Number(e.target.value) as DeviceStatus })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
@@ -459,7 +474,6 @@ const Inventory: React.FC = () => {
         </div>
       )}
 
-      {/* Drawer (Device Details & History) */}
       {isDrawerOpen && selectedDevice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsDrawerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up relative" onClick={e => e.stopPropagation()}>
@@ -481,7 +495,12 @@ const Inventory: React.FC = () => {
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-slate-500">Kategori:</span><span className="font-medium text-slate-700">{selectedDevice.categoryName}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Konum:</span><span className="font-medium text-slate-700">{selectedDevice.departmentName || '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Departman & Zimmet:</span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-medium text-slate-700">{selectedDevice.departmentName || <span className="text-slate-400">Atanmamış</span>}</span>
+                      {selectedDevice.assignedUserName && <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mt-1">👤 {selectedDevice.assignedUserName}</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
 

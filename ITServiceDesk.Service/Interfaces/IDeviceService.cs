@@ -10,6 +10,7 @@ public interface IDeviceService
     
     // Device Operations
     Task<IEnumerable<DeviceDto>> GetAllAsync();
+    Task<IEnumerable<DeviceDto>> GetAvailableForUserAsync(Guid userId);
     Task<DeviceDto?> GetByIdAsync(Guid id);
     Task<DeviceDto> CreateAsync(DeviceCreateDto dto);
     Task<DeviceDto> UpdateAsync(Guid id, DeviceUpdateDto dto);

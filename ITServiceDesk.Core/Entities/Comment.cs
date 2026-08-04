@@ -3,6 +3,8 @@ namespace ITServiceDesk.Core.Entities;
 public class Comment : BaseEntity
 {
     public string Content { get; set; } = string.Empty;
+    public bool IsInternal { get; set; } = false;
+    
     
     // Navigation Properties
     public Guid TicketId { get; set; }

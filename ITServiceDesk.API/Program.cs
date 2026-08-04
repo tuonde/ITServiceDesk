@@ -116,6 +116,7 @@ builder.Services.AddAuthentication(options =>
 // Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 builder.Services.AddScoped<ITicketRepository, EfTicketRepository>();
+builder.Services.AddScoped<ITicketCategoryRepository, EfTicketCategoryRepository>();
 
 // Services
 builder.Services.AddScoped<ITicketService, TicketManager>();
@@ -128,6 +129,7 @@ builder.Services.AddScoped<IAuthService, AuthManager>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 builder.Services.AddScoped<IDeviceService, DeviceManager>();
+builder.Services.AddScoped<ITicketCategoryService, TicketCategoryManager>();
 builder.Services.AddHttpContextAccessor();
 
 // Background Workers
@@ -141,6 +143,31 @@ builder.Services.AddAutoMapper(config =>
 builder.Services.AddValidatorsFromAssembly(typeof(MapProfile).Assembly);
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ITServiceDeskDbContext>();
+    if (!context.TicketCategories.Any())
+    {
+        context.TicketCategories.AddRange(
+            new TicketCategory { Id = Guid.NewGuid(), Name = "Donanım Arızası", Description = "Bilgisayar, yazıcı vb. fiziksel cihaz sorunları." },
+            new TicketCategory { Id = Guid.NewGuid(), Name = "Yazılım / Uygulama Hatası", Description = "Kullanılan programların çalışmaması." },
+            new TicketCategory { Id = Guid.NewGuid(), Name = "Ağ ve İnternet", Description = "İnternet bağlantı sorunları veya ağa erişememe." },
+            new TicketCategory { Id = Guid.NewGuid(), Name = "Hesap ve Erişim", Description = "Şifre sıfırlama, yetki talepleri." }
+        );
+        context.SaveChanges();
+    }
+
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    var roles = new[] { "Admin", "Technician", "User" };
+    foreach (var role in roles)
+    {
+        if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+        {
+            roleManager.CreateAsync(new IdentityRole<Guid>(role)).GetAwaiter().GetResult();
+        }
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -44,7 +44,7 @@ const Users: React.FC = () => {
       ]);
       const currentUserId = authService.getUserId();
       const userData = usersRes.data || [];
-      const isAdmin = authService.getUserRole() === 'Admin';
+      const isAdmin = authService.isAdmin();
       const me = userData.find(u => u.id === currentUserId);
       
       if (isAdmin) {
@@ -79,9 +79,23 @@ const Users: React.FC = () => {
 
     const cleanFirst = sanitize(formData.firstName);
     const cleanLast = sanitize(formData.lastName);
-    const firstLetter = cleanFirst.charAt(0);
     const domain = formData.role === 'Admin' ? 'admin.sirket.com' : 'sirket.com';
-    const generatedEmail = `${firstLetter}.${cleanLast}@${domain}`;
+    
+    let prefix = cleanFirst.charAt(0);
+    let generatedEmail = `${prefix}.${cleanLast}@${domain}`;
+    let charIndex = 1;
+    let counter = 1;
+
+    while (users.some(u => u.email === generatedEmail)) {
+      if (charIndex < cleanFirst.length) {
+        charIndex++;
+        prefix = cleanFirst.substring(0, charIndex);
+        generatedEmail = `${prefix}.${cleanLast}@${domain}`;
+      } else {
+        generatedEmail = `${prefix}.${cleanLast}${counter}@${domain}`;
+        counter++;
+      }
+    }
 
     try {
       const response = await userService.create({
@@ -162,7 +176,7 @@ const Users: React.FC = () => {
       lastName: user.lastName,
       email: user.email,
       departmentId: user.departmentId || '',
-      role: user.roles.includes('Admin') ? 'Admin' : 'User',
+      role: user.roles.includes('Admin') ? 'Admin' : (user.roles.includes('Technician') ? 'Technician' : 'User'),
       isActive: user.isActive,
       phoneNumber: user.phoneNumber || ''
     });
@@ -404,6 +418,7 @@ const Users: React.FC = () => {
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Yetki (Rol)</label>
                 <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all">
                   <option value="User">Kullanıcı (User)</option>
+                  <option value="Technician">Teknisyen/Operatör (Technician)</option>
                   <option value="Admin">Yönetici (Admin)</option>
                 </select>
               </div>

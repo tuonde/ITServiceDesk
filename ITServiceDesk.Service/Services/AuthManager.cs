@@ -55,6 +55,9 @@ public class AuthManager : IAuthService
         if (!await _roleManager.RoleExistsAsync("Admin"))
             await _roleManager.CreateAsync(new IdentityRole<Guid>("Admin"));
             
+        if (!await _roleManager.RoleExistsAsync("Technician"))
+            await _roleManager.CreateAsync(new IdentityRole<Guid>("Technician"));
+            
         if (!await _roleManager.RoleExistsAsync("User"))
             await _roleManager.CreateAsync(new IdentityRole<Guid>("User"));
 

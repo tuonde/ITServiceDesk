@@ -29,9 +29,10 @@ public class TicketsController : ControllerBase
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         _ = Guid.TryParse(userIdClaim, out var userId);
-        var isAdmin = User.IsInRole("Admin");
+        
+        var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
 
-        var result = await _ticketService.GetAllAsync(filter, userId, isAdmin);
+        var result = await _ticketService.GetAllAsync(filter, userId, userRoles);
         return Ok(result);
     }
 
@@ -83,6 +84,7 @@ public class TicketsController : ControllerBase
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         _ = Guid.TryParse(userIdClaim, out var userId);
         var isAdmin = User.IsInRole("Admin");
+        var isTechnician = User.IsInRole("Technician");
 
         try
         {
@@ -92,10 +94,18 @@ public class TicketsController : ControllerBase
 
             if (!isAdmin)
             {
-                if (existingTicket.RequesterId != userId)
-                    return Forbid();
-                if (existingTicket.Status != ITServiceDesk.Core.Enums.TicketStatus.Open)
-                    return BadRequest(ApiResponse<TicketResponseDto>.Fail("Sadece açık durumdaki biletleri güncelleyebilirsiniz."));
+                // Teknisyense ve kendine atanmışsa izin ver
+                if (isTechnician && existingTicket.AssigneeId == userId)
+                {
+                    // izin verildi
+                }
+                else
+                {
+                    if (existingTicket.RequesterId != userId)
+                        return Forbid();
+                    if (existingTicket.Status != ITServiceDesk.Core.Enums.TicketStatus.Open)
+                        return BadRequest(ApiResponse<TicketResponseDto>.Fail("Sadece açık durumdaki biletleri güncelleyebilirsiniz."));
+                }
             }
 
             var result = await _ticketService.UpdateAsync(dto);

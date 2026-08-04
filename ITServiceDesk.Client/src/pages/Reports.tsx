@@ -201,6 +201,43 @@ const Reports: React.FC = () => {
     })).sort((a, b) => b.count - a.count);
   }, [tickets]);
 
+  // Chart 5: Teknisyen Performans (Ortalama Çözüm Süresi)
+  const technicianPerformance = useMemo(() => {
+    const map: Record<string, { totalHours: number, count: number }> = {};
+    tickets.forEach(t => {
+      if ((t.status === TicketStatus.Resolved || t.status === TicketStatus.Closed) && t.assigneeName) {
+        const name = t.assigneeName;
+        const endStr = t.resolvedAt || new Date().toISOString();
+        if (endStr && t.createdAt) {
+          const diffMs = new Date(endStr).getTime() - new Date(t.createdAt).getTime();
+          const hours = diffMs / (1000 * 60 * 60);
+          if (!map[name]) map[name] = { totalHours: 0, count: 0 };
+          map[name].totalHours += hours;
+          map[name].count++;
+        }
+      }
+    });
+    return Object.entries(map).map(([name, data]) => ({
+      name: name,
+      'Ortalama Saat': parseFloat((data.totalHours / data.count).toFixed(1))
+    })).sort((a, b) => a['Ortalama Saat'] - b['Ortalama Saat']).slice(0, 10);
+  }, [tickets]);
+
+  // Chart 6: Maliyet Dağılımı (Departmana Göre)
+  const costByDepartment = useMemo(() => {
+    const map: Record<string, number> = {};
+    tickets.forEach(t => {
+      if (t.repairCost && t.repairCost > 0) {
+        const name = t.departmentName || 'Belirtilmeyen';
+        map[name] = (map[name] || 0) + t.repairCost;
+      }
+    });
+    return Object.entries(map).map(([name, cost]) => ({
+      name: name,
+      Maliyet: cost
+    })).sort((a, b) => b.Maliyet - a.Maliyet).slice(0, 10);
+  }, [tickets]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -361,6 +398,63 @@ const Reports: React.FC = () => {
                         <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60}>
                           {deptBarData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* Technician Performance Chart */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-3">
+                <h3 className="text-base font-bold text-slate-800 mb-6">Teknisyen Performansı (Ortalama Çözüm Süresi - Saat)</h3>
+                <div className="h-[300px]">
+                  {technicianPerformance.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={technicianPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <RechartsTooltip
+                          cursor={{ fill: '#f8fafc' }}
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                        />
+                        <Bar dataKey="Ortalama Saat" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                          {technicianPerformance.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8b5cf6' : '#a855f7'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* Cost Distribution Chart */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-3">
+                <h3 className="text-base font-bold text-slate-800 mb-6">Departmanlara Göre Maliyet Dağılımı (₺)</h3>
+                <div className="h-[300px]">
+                  {costByDepartment.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor (Maliyet girişi yapılmamış)</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={costByDepartment} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <RechartsTooltip
+                          cursor={{ fill: '#f8fafc' }}
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                          formatter={(value: any) => [`₺${value}`, 'Maliyet']}
+                        />
+                        <Bar dataKey="Maliyet" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                          {costByDepartment.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#f59e0b' : '#fbbf24'} />
                           ))}
                         </Bar>
                       </BarChart>

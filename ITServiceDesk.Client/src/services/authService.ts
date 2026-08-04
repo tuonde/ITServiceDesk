@@ -39,16 +39,31 @@ export const authService = {
         return !!localStorage.getItem('token');
     },
 
-    getUserRole: (): string | null => {
+    getUserRoles: (): string[] => {
         const token = localStorage.getItem('token');
-        if (!token) return null;
+        if (!token) return [];
         try {
             const payloadJson = decodeBase64Utf8(token.split('.')[1]);
             const payload = JSON.parse(payloadJson);
-            return payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role || null;
+            const roles = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
+            if (!roles) return [];
+            return Array.isArray(roles) ? roles : [roles];
         } catch (e) {
-            return null;
+            return [];
         }
+    },
+
+    isAdmin: (): boolean => {
+        return authService.getUserRoles().includes('Admin');
+    },
+
+    isTechnician: (): boolean => {
+        return authService.getUserRoles().includes('Technician');
+    },
+
+    getUserRole: (): string | null => {
+        const roles = authService.getUserRoles();
+        return roles.length > 0 ? roles[0] : null;
     },
 
     getUserId: (): string | null => {

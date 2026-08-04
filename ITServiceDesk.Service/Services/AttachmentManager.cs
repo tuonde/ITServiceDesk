@@ -59,7 +59,12 @@ public class AttachmentManager : IAttachmentService
         };
         await _repository.AddAsync(attachment);
         await _repository.SaveChangesAsync();
-        return _mapper.Map<AttachmentResponseDto>(attachment);
+        
+        var uploadedAttachment = await _repository.Query()
+            .Include(a => a.Uploader)
+            .FirstOrDefaultAsync(a => a.Id == attachment.Id);
+
+        return _mapper.Map<AttachmentResponseDto>(uploadedAttachment ?? attachment);
     }
 
     public async Task<bool> DeleteAsync(Guid id)

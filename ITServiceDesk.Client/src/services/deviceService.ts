@@ -7,6 +7,11 @@ export const deviceService = {
         return response.data;
     },
     
+    getAvailable: async () => {
+        const response = await api.get<DeviceDto[]>('/api/devices/available');
+        return response.data;
+    },
+    
     getById: async (id: string) => {
         const response = await api.get<DeviceDto>(`/api/devices/${id}`);
         return response.data;

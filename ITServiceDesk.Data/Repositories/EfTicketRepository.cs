@@ -19,6 +19,7 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             .Include(t => t.Assignee)
             .Include(t => t.Department)
             .Include(t => t.Device)
+            .Include(t => t.Category)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
     }
 
@@ -29,16 +30,18 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             .Include(t => t.Assignee)
             .Include(t => t.Department)
             .Include(t => t.Device)
+            .Include(t => t.Category)
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? requesterId, Guid? deviceId)
+    public async Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? exactRequesterId, Guid? involvedUserId, Guid? deviceId)
     {
         var query = _context.Tickets
             .Include(t => t.Requester)
             .Include(t => t.Assignee)
             .Include(t => t.Department)
             .Include(t => t.Device)
+            .Include(t => t.Category)
             .AsQueryable();
 
         if (status.HasValue)
@@ -47,8 +50,11 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
         if (priority.HasValue)
             query = query.Where(t => t.Priority == priority.Value);
             
-        if (requesterId.HasValue)
-            query = query.Where(t => t.RequesterId == requesterId.Value);
+        if (exactRequesterId.HasValue)
+            query = query.Where(t => t.RequesterId == exactRequesterId.Value);
+
+        if (involvedUserId.HasValue)
+            query = query.Where(t => t.RequesterId == involvedUserId.Value || t.AssigneeId == involvedUserId.Value);
             
         if (deviceId.HasValue)
             query = query.Where(t => t.DeviceId == deviceId.Value);

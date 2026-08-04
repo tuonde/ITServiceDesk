@@ -38,15 +38,29 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(UserCreateDto dto)
     {
-        var user = await _userService.CreateUserAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = user.Id }, ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla oluşturuldu."));
+        try
+        {
+            var user = await _userService.CreateUserAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = user.Id }, ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla oluşturuldu."));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<UserListDto>.Fail(ex.Message));
+        }
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, UserUpdateDto dto)
     {
-        var user = await _userService.UpdateUserAsync(id, dto);
-        return Ok(ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla güncellendi."));
+        try
+        {
+            var user = await _userService.UpdateUserAsync(id, dto);
+            return Ok(ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla güncellendi."));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<UserListDto>.Fail(ex.Message));
+        }
     }
 
     [HttpPatch("{id}/toggle-status")]
