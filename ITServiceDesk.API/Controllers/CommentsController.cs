@@ -18,8 +18,11 @@ public class CommentsController : ControllerBase
     [HttpGet("ticket/{ticketId}")]
     public async Task<IActionResult> GetByTicketId(Guid ticketId)
     {
-        bool isInternalViewer = User.IsInRole("Admin") || User.IsInRole("Technician");
-        var result = await _service.GetAllByTicketIdAsync(ticketId, isInternalViewer);
+        bool isInternalViewer = User.IsInRole("Admin");
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        Guid.TryParse(userIdString, out Guid userId);
+
+        var result = await _service.GetAllByTicketIdAsync(ticketId, isInternalViewer, userId);
         return Ok(ApiResponse<IEnumerable<CommentResponseDto>>.Success(result));
     }
 

@@ -10,4 +10,5 @@ public class TicketFilterDto
     public TicketStatus? Status { get; set; }
     public Priority? Priority { get; set; }
     public Guid? DeviceId { get; set; }
+    public Guid? AssigneeId { get; set; }
 }

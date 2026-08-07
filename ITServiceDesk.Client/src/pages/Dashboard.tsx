@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { ticketService } from '../services/ticketService';
 import { type TicketResponseDto, TicketStatus } from '../types/ticket';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { signalrService } from '../services/signalrService';
-import { userService } from '../services/userService';
-import { type UserListDto } from '../types/user';
+import { useNavigate } from 'react-router-dom';
+import Tickets from './Tickets';
 
 const Dashboard: React.FC = () => {
   const isAdmin = authService.isAdmin();
+  const isTechnician = authService.isTechnician();
+  const navigate = useNavigate();
 
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
-  const [assignees, setAssignees] = useState<UserListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -44,14 +45,8 @@ const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [ticketsResponse, usersResponse] = await Promise.all([
-        ticketService.getAll({ pageNumber: 1, pageSize: 100 }),
-        isAdmin ? userService.getAll() : Promise.resolve({ data: [] })
-      ]);
+      const ticketsResponse = await ticketService.getAll({ pageNumber: 1, pageSize: 100 });
       setTickets(ticketsResponse.data || []);
-      if (isAdmin && usersResponse.data) {
-        setAssignees(usersResponse.data.filter((u: UserListDto) => u.roles.includes('Admin') || u.roles.includes('Technician')));
-      }
     } catch (err) {
       console.error('Failed to load dashboard data', err);
     } finally {
@@ -130,34 +125,39 @@ const Dashboard: React.FC = () => {
     })
     .slice(0, 4);
 
-  const workloadData = assignees.map(user => {
-    const activeTickets = tickets.filter(t => t.assigneeId === user.id && (t.status === TicketStatus.Open || t.status === TicketStatus.InProgress));
-    return {
-      name: `${user.firstName} ${user.lastName}`,
-      count: activeTickets.length
-    };
-  }).sort((a, b) => b.count - a.count);
+
 
   return (
     <div className="space-y-6">
 
       {/* SLA Widget */}
-      {isAdmin && slaTickets.length > 0 && (
-        <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-200 p-6 rounded-2xl shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            <svg className="w-32 h-32 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
+      {(isAdmin || isTechnician) && slaTickets.length > 0 && (
+        <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-200 p-3 md:p-4 rounded-2xl shadow-sm relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 p-3 opacity-5">
+            <svg className="w-24 h-24 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
           </div>
           <div className="relative z-10">
-            <h3 className="text-xl font-bold text-rose-800 mb-5 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-rose-800 mb-3 flex items-center gap-2">
               <span className="relative flex h-4 w-4 mr-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500"></span>
               </span>
               Acil Müdahale Bekleyen Talepler
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {slaTickets.map(t => (
-                <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-rose-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div 
+                  key={t.id} 
+                  onClick={() => {
+                    if (isAdmin) {
+                      navigate('/tickets', { state: { openTicketId: t.id } });
+                    } else if (isTechnician) {
+                      window.dispatchEvent(new CustomEvent('open-ticket', { detail: t.id }));
+                      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    }
+                  }}
+                  className="bg-white p-3 rounded-xl shadow-sm border border-rose-100 flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer hover:border-rose-300"
+                >
                   <div>
                     <div className="flex justify-between items-start mb-2">
                       <span className={`text-xs font-bold px-2 py-1 rounded-lg ${t.isEscalated ? 'bg-rose-100 text-rose-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -238,7 +238,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-center h-full text-slate-400">Yeterli veri yok</div>
               ) : (
                 <>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col md:col-span-2">
                     <h4 className="text-sm font-semibold text-slate-500 mb-4 text-center">Talep Durum Dağılımı</h4>
                     <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
@@ -263,23 +263,6 @@ const Dashboard: React.FC = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  
-                  {/* Workload Distribution */}
-                  <div className="flex flex-col">
-                    <h4 className="text-sm font-semibold text-slate-500 mb-4 text-center">İş Yükü Dağılımı (Açık ve İşlemdeki Talepler)</h4>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={workloadData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                        <RechartsTooltip 
-                          cursor={{ fill: '#f1f5f9' }}
-                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} name="Aktif Talep" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
                 </>
               )}
             </div>
@@ -287,8 +270,9 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Recent Activities Section */}
-        <div className={`bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col ${!isAdmin ? 'lg:col-span-2' : ''}`}>
-          <div className="flex items-center justify-between mb-6">
+        {isAdmin && (
+          <div className={`bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col`}>
+            <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-slate-800">{isAdmin ? 'Genel Sistem Aktiviteleri' : 'Son Aktivitelerim'}</h3>
             <Link to="/tickets" className="text-sm font-semibold text-slate-400 hover:text-indigo-600 transition-colors">Tümünü Gör &rarr;</Link>
           </div>
@@ -325,8 +309,24 @@ const Dashboard: React.FC = () => {
             </div>
           )}
         </div>
+        )}
 
       </div>
+
+      {/* Embedded Tickets for Standard Users */}
+      {!isAdmin && !isTechnician && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px] sm:min-h-[600px] flex flex-col p-3 mt-4 sm:p-6 sm:mt-6">
+          <Tickets />
+        </div>
+      )}
+
+      {/* Embedded Tickets for Technicians */}
+      {isTechnician && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px] sm:min-h-[600px] flex flex-col p-3 mt-4 sm:p-6 sm:mt-6">
+          <Tickets mode="my-tasks" />
+        </div>
+      )}
+
     </div>
   );
 };

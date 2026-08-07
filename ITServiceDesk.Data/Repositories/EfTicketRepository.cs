@@ -34,7 +34,7 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? exactRequesterId, Guid? involvedUserId, Guid? deviceId)
+    public async Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? exactRequesterId, Guid? involvedUserId, Guid? deviceId, Guid? assigneeId)
     {
         var query = _context.Tickets
             .Include(t => t.Requester)
@@ -58,6 +58,9 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             
         if (deviceId.HasValue)
             query = query.Where(t => t.DeviceId == deviceId.Value);
+
+        if (assigneeId.HasValue)
+            query = query.Where(t => t.AssigneeId == assigneeId.Value);
 
         var totalCount = await query.CountAsync();
 

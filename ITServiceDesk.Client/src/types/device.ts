@@ -20,6 +20,8 @@ export interface DeviceDto {
     categoryName: string;
     departmentId: string | null;
     departmentName: string | null;
+    assignedUserId: string | null;
+    assignedUserName: string | null;
 }
 
 export interface DeviceCreateDto {
@@ -28,6 +30,7 @@ export interface DeviceCreateDto {
     status: DeviceStatus;
     categoryId: string;
     departmentId: string | null;
+    assignedUserId: string | null;
 }
 
 export interface DeviceUpdateDto {
@@ -37,4 +40,5 @@ export interface DeviceUpdateDto {
     status: DeviceStatus;
     categoryId: string;
     departmentId: string | null;
+    assignedUserId: string | null;
 }

@@ -26,12 +26,21 @@ public class CommentManager : ICommentService
         _notificationService = notificationService;
     }
 
-    public async Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId, bool isInternalViewer)
+    public async Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId, bool isInternalViewer, Guid currentUserId)
     {
         var query = _repository.Query()
             .Include(c => c.User)
             .Where(x => x.TicketId == ticketId);
             
+        if (!isInternalViewer)
+        {
+            var ticket = await _ticketRepository.GetByIdAsync(ticketId);
+            if (ticket != null && ticket.AssigneeId == currentUserId)
+            {
+                isInternalViewer = true;
+            }
+        }
+
         if (!isInternalViewer)
         {
             query = query.Where(x => !x.IsInternal);

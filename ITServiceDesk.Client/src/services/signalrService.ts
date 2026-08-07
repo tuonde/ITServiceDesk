@@ -12,7 +12,7 @@ class SignalRService {
         }
 
         this.connection = new signalR.HubConnectionBuilder()
-            .withUrl('http://localhost:5014/ticketHub', {
+            .withUrl('/ticketHub', {
                 accessTokenFactory: () => token,
                 skipNegotiation: true,
                 transport: signalR.HttpTransportType.WebSockets
@@ -38,7 +38,7 @@ class SignalRService {
 
         // NotificationHub Connection
         this.notificationConnection = new signalR.HubConnectionBuilder()
-            .withUrl('http://localhost:5014/notificationHub', {
+            .withUrl('/notificationHub', {
                 accessTokenFactory: () => token,
                 skipNegotiation: true,
                 transport: signalR.HttpTransportType.WebSockets

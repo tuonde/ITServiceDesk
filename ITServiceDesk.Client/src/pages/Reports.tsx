@@ -5,9 +5,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { userService } from '../services/userService';
+import { type UserListDto } from '../types/user';
 
 const Reports: React.FC = () => {
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
+  const [assignees, setAssignees] = useState<UserListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -17,10 +20,16 @@ const Reports: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const res = await ticketService.getAll({ pageNumber: 1, pageSize: 1000 });
-      if (res.data) setTickets(res.data);
+      const [ticketsRes, usersRes] = await Promise.all([
+        ticketService.getAll({ pageNumber: 1, pageSize: 1000 }),
+        userService.getAll()
+      ]);
+      if (ticketsRes.data) setTickets(ticketsRes.data);
+      if (usersRes.data) {
+        setAssignees(usersRes.data.filter((u: UserListDto) => u.roles.includes('Admin') || u.roles.includes('Technician')));
+      }
     } catch (error) {
-      console.error("Error loading tickets for reports", error);
+      console.error("Error loading data for reports", error);
     } finally {
       setIsLoading(false);
     }
@@ -238,6 +247,17 @@ const Reports: React.FC = () => {
     })).sort((a, b) => b.Maliyet - a.Maliyet).slice(0, 10);
   }, [tickets]);
 
+  // Chart 7: Workload Distribution
+  const workloadData = useMemo(() => {
+    return assignees.map(user => {
+      const activeTickets = tickets.filter(t => t.assigneeId === user.id && (t.status === TicketStatus.Open || t.status === TicketStatus.InProgress));
+      return {
+        name: `${user.firstName} ${user.lastName}`,
+        count: activeTickets.length
+      };
+    }).sort((a, b) => b.count - a.count);
+  }, [tickets, assignees]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -398,6 +418,35 @@ const Reports: React.FC = () => {
                         <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60}>
                           {deptBarData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+
+              {/* Workload Distribution Chart */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-3">
+                <h3 className="text-base font-bold text-slate-800 mb-6">İş Yükü Dağılımı (Açık ve İşlemdeki Talepler)</h3>
+                <div className="h-[300px]">
+                  {workloadData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={workloadData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                        <RechartsTooltip
+                          cursor={{ fill: '#f8fafc' }}
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                          formatter={(value: any) => [value, 'Aktif Talep']}
+                        />
+                        <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                          {workloadData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#6366f1' : '#818cf8'} />
                           ))}
                         </Bar>
                       </BarChart>

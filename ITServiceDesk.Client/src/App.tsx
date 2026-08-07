@@ -15,6 +15,17 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Reports from './pages/Reports';
 import Inventory from './pages/Inventory';
+import MyTasks from './pages/MyTasks';
+
+const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole: 'admin' | 'technician' }) => {
+  const isAdmin = authService.isAdmin();
+  const isTechnician = authService.isTechnician();
+  
+  if (requiredRole === 'admin' && !isAdmin) return <Navigate to="/" replace />;
+  if (requiredRole === 'technician' && !isAdmin && !isTechnician) return <Navigate to="/" replace />;
+  
+  return <>{children}</>;
+};
 
 function App() {
   const { settings, isLoading } = useSettings();
@@ -56,7 +67,12 @@ function App() {
 
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/tickets" element={<Tickets />} />
+          <Route path="/my-tasks" element={
+            <ProtectedRoute requiredRole="admin"><MyTasks /></ProtectedRoute>
+          } />
+          <Route path="/tickets" element={
+            <ProtectedRoute requiredRole="technician"><Tickets /></ProtectedRoute>
+          } />
           <Route path="/users" element={<Users />} />
           <Route path="/audit-logs" element={<AuditLogs />} />
           <Route path="/departments" element={<Departments />} />

@@ -6,6 +6,6 @@ namespace ITServiceDesk.Core.Interfaces.Repositories;
 public interface ITicketRepository : IRepository<Ticket>
 {
     Task<IEnumerable<Ticket>> GetTicketsWithDetailsAsync();
-    Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? exactRequesterId, Guid? involvedUserId, Guid? deviceId);
+    Task<(IEnumerable<Ticket> Tickets, int TotalCount)> GetPagedTicketsAsync(int pageNumber, int pageSize, TicketStatus? status, Priority? priority, Guid? exactRequesterId, Guid? involvedUserId, Guid? deviceId, Guid? assigneeId);
     new Task<Ticket?> GetByIdAsync(Guid id);
 }

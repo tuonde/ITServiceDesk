@@ -59,7 +59,8 @@ public class TicketManager : ITicketService
             filter.Priority, 
             exactRequesterId,
             involvedUserId,
-            filter.DeviceId);
+            filter.DeviceId,
+            filter.AssigneeId);
 
         var dtos = _mapper.Map<IEnumerable<TicketResponseDto>>(tickets);
         
@@ -166,6 +167,17 @@ public class TicketManager : ITicketService
             {
                 Message = statusMessage,
                 UserId = existingTicket.RequesterId,
+                RelatedTicketId = existingTicket.Id
+            });
+        }
+
+        // Notification for Assignee Change
+        if (oldAssignee != existingTicket.AssigneeId && existingTicket.AssigneeId.HasValue && existingTicket.AssigneeId.Value != Guid.Empty)
+        {
+            await _notificationService.CreateAndSendNotificationAsync(new DTOs.Notifications.NotificationCreateDto
+            {
+                Message = $"Size yeni bir bilet atandı: {existingTicket.Title}",
+                UserId = existingTicket.AssigneeId.Value,
                 RelatedTicketId = existingTicket.Id
             });
         }

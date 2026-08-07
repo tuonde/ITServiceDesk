@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import { profileService } from '../services/profileService';
 import type { ProfileUpdateData, ChangePasswordData } from '../services/profileService';
-
+import { authService } from '../services/authService';
 
 export default function Profile() {
+  const isMobileResponsive = !authService.isAdmin();
   const [loading, setLoading] = useState(true);
   const [readOnlyData, setReadOnlyData] = useState({ email: '', departmentName: '' });
 
@@ -101,15 +103,22 @@ export default function Profile() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden max-w-5xl mx-auto w-full">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+    <div className="flex flex-col flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden max-w-5xl mx-auto w-full">
+      <div className={`border-b border-slate-100 flex items-center justify-between bg-slate-50/50 ${isMobileResponsive ? 'p-4 sm:p-6' : 'p-6'}`}>
         <div>
           <h2 className="text-xl font-bold text-slate-800">Profilim</h2>
           <p className="text-sm text-slate-500 mt-1">Kişisel bilgilerinizi ve şifrenizi güncelleyin.</p>
         </div>
+        <Link 
+          to="/" 
+          className="w-10 h-10 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 rounded-full flex items-center justify-center transition-all shadow-sm"
+          title="Anasayfaya Dön"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+        </Link>
       </div>
 
-      <div className="p-6">
+      <div className={isMobileResponsive ? 'p-4 sm:p-6' : 'p-6'}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
           
           <div className="flex flex-col">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { ticketService } from '../services/ticketService';
 import { authService } from '../services/authService';
@@ -21,12 +22,18 @@ import { saveAs } from 'file-saver';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { tr } from 'date-fns/locale/tr';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 registerLocale('tr', tr);
 
-const Tickets: React.FC = () => {
+interface TicketsProps {
+  mode?: 'all' | 'my-tasks';
+}
+
+const Tickets: React.FC<TicketsProps> = ({ mode = 'all' }) => {
   const isAdmin = authService.isAdmin();
   const isTechnician = authService.isTechnician();
+  const isMobileResponsive = !isAdmin;
   
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
   const [devices, setDevices] = useState<DeviceDto[]>([]);
@@ -34,6 +41,8 @@ const Tickets: React.FC = () => {
   const [assignees, setAssignees] = useState<UserListDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Sorting & Filtering State
   const [sortConfig, setSortConfig] = useState<{key: keyof TicketResponseDto, direction: 'asc'|'desc'} | null>({ key: 'createdAt', direction: 'desc' });
@@ -44,6 +53,10 @@ const Tickets: React.FC = () => {
   // Bulk Actions State
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,9 +70,28 @@ const Tickets: React.FC = () => {
   });
   const [isCreating, setIsCreating] = useState(false);
   
+  // Priority Assessment State
+  const [priorityQ1, setPriorityQ1] = useState<number | null>(null);
+  const [priorityQ2, setPriorityQ2] = useState<number | null>(null);
+
+  // Update priority when answers change
+  useEffect(() => {
+    if (priorityQ1 !== null && priorityQ2 !== null) {
+      const score = priorityQ1 + priorityQ2;
+      let calculatedPriority = Priority.Low;
+      if (score === 6) calculatedPriority = Priority.Critical;
+      else if (score === 5) calculatedPriority = Priority.High;
+      else if (score === 4 || score === 3) calculatedPriority = Priority.Medium;
+      else calculatedPriority = Priority.Low;
+      
+      setNewTicket(prev => ({ ...prev, priority: calculatedPriority }));
+    }
+  }, [priorityQ1, priorityQ2]);
+  
+  
   // Status Update Modal State
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [updateStatusData, setUpdateStatusData] = useState<{ status: TicketStatus, report: string, assigneeId: string | null, repairCost: number | null }>({ status: TicketStatus.Resolved, report: '', assigneeId: null, repairCost: null });
+  const [updateStatusData, setUpdateStatusData] = useState<{ status: TicketStatus, report: string, assigneeId: string | null, repairCost: number | null }>({ status: TicketStatus.InProgress, report: '', assigneeId: null, repairCost: null });
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Edit Ticket Modal State (User)
@@ -140,6 +172,20 @@ const Tickets: React.FC = () => {
     };
   }, [selectedTicket]);
 
+  useEffect(() => {
+    if (location.state?.openTicketId && tickets.length > 0) {
+      const ticketToOpen = tickets.find(t => t.id === location.state.openTicketId);
+      if (ticketToOpen && selectedTicket?.id !== ticketToOpen.id) {
+        setSelectedTicket(ticketToOpen);
+        setUnreadMessages(prev => ({ ...prev, [ticketToOpen.id]: 0 }));
+        loadComments(ticketToOpen.id);
+        loadAttachments(ticketToOpen.id);
+        // Clean up the state so it doesn't re-trigger on other re-renders
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [tickets, location.state, location.pathname, navigate, selectedTicket?.id]);
+
   const loadComments = async (ticketId: string) => {
     try {
       const data = await commentService.getByTicketId(ticketId);
@@ -161,7 +207,14 @@ const Tickets: React.FC = () => {
   const loadTickets = async () => {
     try {
       setIsLoading(true);
-      const response = await ticketService.getAll({ pageNumber: 1, pageSize: 100 });
+      const filterParams: any = { pageNumber: 1, pageSize: 100 };
+      if (mode === 'my-tasks') {
+        const currentUserId = authService.getUserId();
+        if (currentUserId) {
+          filterParams.assigneeId = currentUserId;
+        }
+      }
+      const response = await ticketService.getAll(filterParams);
       setTickets(response.data || []);
       setError(null);
     } catch (err: any) {
@@ -222,7 +275,9 @@ const Tickets: React.FC = () => {
 
       toast.success('Bilet başarıyla oluşturuldu.');
       setIsModalOpen(false);
-      setNewTicket({ title: '', description: '', priority: Priority.Low });
+      setNewTicket({ title: '', description: '', priority: Priority.Low, deviceId: null, categoryId: null });
+      setPriorityQ1(null);
+      setPriorityQ2(null);
       setNewTicketFiles([]);
       loadTickets(); // Reload list
     } catch (err: any) {
@@ -394,6 +449,18 @@ const Tickets: React.FC = () => {
     return sortableTickets;
   }, [tickets, sortConfig, filterType, startDate, endDate]);
 
+  const paginatedTickets = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedTickets.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedTickets, currentPage]);
+
+  const totalPages = Math.ceil(sortedTickets.length / itemsPerPage);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortConfig, filterType, startDate, endDate, tickets.length]);
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       setSelectedTicketIds(sortedTickets.map(t => t.id));
@@ -556,10 +623,14 @@ const Tickets: React.FC = () => {
     saveAs(blob, 'destek_talepleri.xlsx');
   };
 
+
   return (
     <div className="flex flex-col h-full space-y-4">
-      <div className="flex items-center justify-between shrink-0">
-        <h2 className="text-2xl font-bold text-slate-800">{isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim'}</h2>
+
+      <div className={`shrink-0 ${isMobileResponsive ? 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2' : 'flex items-center justify-between'}`}>
+        <h2 className="text-2xl font-bold text-slate-800">
+           {mode === 'my-tasks' ? 'Görevlerim' : (isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim')}
+        </h2>
         {!isAdmin && (
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -616,53 +687,55 @@ const Tickets: React.FC = () => {
         {/* Filters */}
         <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex bg-slate-100/80 p-1 rounded-xl overflow-x-auto w-full xl:w-auto custom-scrollbar border border-slate-200/50">
               <button 
                 onClick={() => setFilterType('all')} 
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${filterType === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-1 xl:flex-none ${filterType === 'all' ? 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
                 Tüm Talepler
               </button>
               <button 
                 onClick={() => setFilterType('resolved')} 
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${filterType === 'resolved' ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-1 xl:flex-none ${filterType === 'resolved' ? 'bg-white text-purple-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
-                Çözülmüş Talepler
+                Çözülmüş
               </button>
               <button 
                 onClick={() => setFilterType('open')} 
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${filterType === 'open' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-1 xl:flex-none ${filterType === 'open' ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
-                Açık Talepler
+                Açık
               </button>
               <button 
                 onClick={() => setFilterType('inProgress')} 
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${filterType === 'inProgress' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-1 xl:flex-none ${filterType === 'inProgress' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
-                İşlemdeki Talepler
+                İşlemde
               </button>
               <button 
                 onClick={() => setFilterType('unresolved')} 
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${filterType === 'unresolved' ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-1 xl:flex-none ${filterType === 'unresolved' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
-                Çözülmemiş Talepler (Açık + İşlemde)
+                Çözülmemiş (Açık + İşlemde)
               </button>
             </div>
             
-            <div className="flex items-center gap-3">
-               <button onClick={exportToPDF} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                 PDF
-               </button>
-               <button onClick={exportToExcel} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                 Excel
-               </button>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                 <button onClick={exportToPDF} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                   PDF
+                 </button>
+                 <button onClick={exportToExcel} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                   Excel
+                 </button>
+              </div>
+            )}
           </div>
           
           {/* Date Filters */}
-          <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200">
+          <div className={`flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 ${isMobileResponsive ? 'w-full' : ''}`}>
              <div className="flex flex-wrap gap-2">
                 <button onClick={() => setDateRange([null, null])} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${!startDate ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Tüm Zamanlar</button>
                 <button onClick={() => { const today = new Date(); setDateRange([today, today]); }} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${startDate && startDate.toDateString() === new Date().toDateString() && endDate?.toDateString() === new Date().toDateString() ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Bugün</button>
@@ -700,8 +773,8 @@ const Tickets: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="flex-1 overflow-auto w-full">
+          <table className={`text-left border-collapse ${isMobileResponsive ? 'min-w-[800px] w-full' : 'w-full'}`}>
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
                 <th className="px-3 py-4 w-12 text-center border-r border-slate-100">
@@ -743,7 +816,7 @@ const Tickets: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                sortedTickets.map((ticket) => (
+                paginatedTickets.map((ticket) => (
                   <tr key={ticket.id} onClick={() => { setSelectedTicket(ticket); setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 })); loadComments(ticket.id); loadAttachments(ticket.id); }} className={`transition-colors cursor-pointer group ${selectedTicketIds.includes(ticket.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
                     <td className="px-3 py-4 text-center border-r border-slate-50" onClick={(e) => e.stopPropagation()}>
                       <input 
@@ -826,20 +899,57 @@ const Tickets: React.FC = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-50 shrink-0">
+            <div className="text-sm text-slate-500">
+              Toplam <span className="font-semibold text-slate-700">{sortedTickets.length}</span> kayıttan <span className="font-semibold text-slate-700">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, sortedTickets.length)}</span> arası gösteriliyor
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              >
+                Önceki
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors ${currentPage === page ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-200 text-slate-600 bg-transparent'}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              >
+                Sonraki
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create Modal */}
-      {isModalOpen && !isAdmin && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-800">Yeni Bilet Oluştur</h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
+      {isModalOpen && !isAdmin && createPortal(
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-end z-[9999]">
+          <div className="bg-white shadow-2xl w-full max-w-md h-full flex flex-col overflow-hidden animate-slide-in-right">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <h3 className="text-xl font-bold text-slate-800">Yeni Talep Oluştur</h3>
+              <button type="button" onClick={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }} className="text-slate-400 hover:text-rose-500 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <form onSubmit={handleCreateTicket} className="p-6 space-y-5">
-              <div>
+            <form onSubmit={handleCreateTicket} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5 flex flex-col">
+              <div className="flex-1 space-y-5">
+                <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Konu / Başlık</label>
                 <input 
                   type="text" 
@@ -862,17 +972,43 @@ const Tickets: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Öncelik Seviyesi</label>
-                <select 
-                  value={newTicket.priority}
-                  onChange={e => setNewTicket({...newTicket, priority: Number(e.target.value)})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none"
-                >
-                  <option value={1}>Düşük</option>
-                  <option value={2}>Orta</option>
-                  <option value={3}>Yüksek</option>
-                  <option value={4}>Kritik</option>
-                </select>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Öncelik Değerlendirmesi</label>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800 mb-2">Soru 1: Bu durum kimi / neyi etkiliyor?</p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="radio" name="q1" checked={priorityQ1 === 1} onChange={() => setPriorityQ1(1)} className="text-emerald-600 focus:ring-emerald-500" />
+                        Sadece beni
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="radio" name="q1" checked={priorityQ1 === 2} onChange={() => setPriorityQ1(2)} className="text-emerald-600 focus:ring-emerald-500" />
+                        Departmanımı
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="radio" name="q1" checked={priorityQ1 === 3} onChange={() => setPriorityQ1(3)} className="text-emerald-600 focus:ring-emerald-500" />
+                        Tüm şirketi veya müşterileri
+                      </label>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-200 pt-4">
+                    <p className="text-sm font-medium text-slate-800 mb-2">Soru 2: Bu sorun işinizi yapmanızı ne kadar engelliyor?</p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="radio" name="q2" checked={priorityQ2 === 1} onChange={() => setPriorityQ2(1)} className="text-emerald-600 focus:ring-emerald-500" />
+                        İşimi engellenmiyor, sadece bilgi / destek talebi
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="radio" name="q2" checked={priorityQ2 === 2} onChange={() => setPriorityQ2(2)} className="text-emerald-600 focus:ring-emerald-500" />
+                        İşimi yavaşlatıyor ama alternatif bir yolum var
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                        <input type="radio" name="q2" checked={priorityQ2 === 3} onChange={() => setPriorityQ2(3)} className="text-emerald-600 focus:ring-emerald-500" />
+                        İşim tamamen durdu, hiçbir şekilde çalışamıyorum
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori (Opsiyonel)</label>
@@ -935,24 +1071,25 @@ const Tickets: React.FC = () => {
                     </div>
                   )}
                 </div>
+                </div>
               </div>
 
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
+              <div className="pt-4 border-t border-slate-100 flex gap-3 shrink-0">
+                <button type="button" onClick={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
                   İptal
                 </button>
-                <button type="submit" disabled={isCreating} className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all">
+                <button type="submit" disabled={isCreating || priorityQ1 === null || priorityQ2 === null} className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   {isCreating ? 'Oluşturuluyor...' : 'Bileti Gönder'}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Ticket Details Modal */}
-      {selectedTicket && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicket(null)}>
+      {selectedTicket && createPortal(
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={() => setSelectedTicket(null)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-100 flex flex-col overflow-hidden max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <h3 className="text-xl font-bold text-slate-800">{selectedTicket.title}</h3>
@@ -1098,7 +1235,7 @@ const Tickets: React.FC = () => {
                     {attachments.map(att => (
                       <div key={att.id} className="flex flex-col border border-slate-200 rounded-xl overflow-hidden hover:border-sky-300 transition-colors bg-white w-48">
                         <a 
-                          href={`http://localhost:5014${att.filePath}`} 
+                          href={att.filePath} 
                           target="_blank" 
                           rel="noreferrer"
                           className="flex items-center gap-3 p-3 group"
@@ -1201,14 +1338,14 @@ const Tickets: React.FC = () => {
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 shrink-0">
-              {isAdmin && Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
+              {(isAdmin || (isTechnician && selectedTicket.assigneeId === authService.getUserId())) && Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
                 <button 
                   onClick={() => {
                       if (Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) {
                          alert("Bu talep zaten çözülmüş veya kapatılmış.");
                          return;
                       }
-                      setUpdateStatusData({ status: TicketStatus.Resolved, report: '', assigneeId: selectedTicket.assigneeId || null, repairCost: selectedTicket.repairCost || null });
+                      setUpdateStatusData({ status: TicketStatus.InProgress, report: '', assigneeId: selectedTicket.assigneeId || null, repairCost: selectedTicket.repairCost || null });
                       setIsStatusModalOpen(true);
                   }} 
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
@@ -1233,11 +1370,11 @@ const Tickets: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Status Update Modal */}
-      {isStatusModalOpen && selectedTicket && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      {isStatusModalOpen && selectedTicket && createPortal(
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-800">Durum Güncelle</h3>
@@ -1308,11 +1445,11 @@ const Tickets: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Edit Ticket Modal */}
-      {isEditModalOpen && editTicketData && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      {isEditModalOpen && editTicketData && createPortal(
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-800">Talebi Düzenle</h3>
@@ -1391,7 +1528,7 @@ const Tickets: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 };
