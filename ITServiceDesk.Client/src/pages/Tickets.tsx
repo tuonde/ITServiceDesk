@@ -27,10 +27,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 registerLocale('tr', tr);
 
 interface TicketsProps {
-  mode?: 'all' | 'my-tasks';
+  mode?: 'all' | 'my-tasks' | 'my-requests';
+  onModeChange?: (mode: 'my-tasks' | 'my-requests') => void;
 }
 
-const Tickets: React.FC<TicketsProps> = ({ mode = 'all' }) => {
+const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
   const isAdmin = authService.isAdmin();
   const isTechnician = authService.isTechnician();
   const isMobileResponsive = !isAdmin;
@@ -162,15 +163,28 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all' }) => {
       }
     };
 
+    const handleOpenNewTicketEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ deviceId: string, categoryId: string | null }>;
+      const { deviceId, categoryId } = customEvent.detail;
+      setNewTicket(prev => ({
+        ...prev,
+        deviceId: deviceId || null,
+        categoryId: categoryId || null
+      }));
+      setIsModalOpen(true);
+    };
+
     window.addEventListener('open-ticket', handleOpenTicketEvent);
+    window.addEventListener('open-new-ticket', handleOpenNewTicketEvent);
 
     return () => {
       signalrService.off('TicketCreated', handleSignalREvent);
       signalrService.off('TicketUpdated', handleSignalREvent);
       signalrService.off('ReceiveCommentNotification', handleCommentEvent);
       window.removeEventListener('open-ticket', handleOpenTicketEvent);
+      window.removeEventListener('open-new-ticket', handleOpenNewTicketEvent);
     };
-  }, [selectedTicket]);
+  }, [selectedTicket, mode]);
 
   useEffect(() => {
     if (location.state?.openTicketId && tickets.length > 0) {
@@ -212,6 +226,11 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all' }) => {
         const currentUserId = authService.getUserId();
         if (currentUserId) {
           filterParams.assigneeId = currentUserId;
+        }
+      } else if (mode === 'my-requests') {
+        const currentUserId = authService.getUserId();
+        if (currentUserId) {
+          filterParams.requesterId = currentUserId;
         }
       }
       const response = await ticketService.getAll(filterParams);
@@ -628,9 +647,26 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all' }) => {
     <div className="flex flex-col h-full space-y-4">
 
       <div className={`shrink-0 ${isMobileResponsive ? 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2' : 'flex items-center justify-between'}`}>
-        <h2 className="text-2xl font-bold text-slate-800">
-           {mode === 'my-tasks' ? 'Görevlerim' : (isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim')}
-        </h2>
+        {(mode === 'my-tasks' || mode === 'my-requests') && onModeChange ? (
+          <div className="flex items-center gap-6 border-b border-slate-200 w-full sm:w-auto mt-2 sm:mt-0">
+            <button
+              onClick={() => onModeChange('my-tasks')}
+              className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-tasks' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+            >
+              Görevlerim
+            </button>
+            <button
+              onClick={() => onModeChange('my-requests')}
+              className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-requests' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+            >
+              Taleplerim
+            </button>
+          </div>
+        ) : (
+          <h2 className="text-2xl font-bold text-slate-800 mt-2 sm:mt-0">
+             {isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim'}
+          </h2>
+        )}
         {!isAdmin && (
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -1478,19 +1514,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all' }) => {
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none resize-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Öncelik Seviyesi</label>
-                <select 
-                  value={editTicketData.priority}
-                  onChange={e => setEditTicketData({...editTicketData, priority: Number(e.target.value)})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none"
-                >
-                  <option value={1}>Düşük</option>
-                  <option value={2}>Orta</option>
-                  <option value={3}>Yüksek</option>
-                  <option value={4}>Kritik</option>
-                </select>
-              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori (Opsiyonel)</label>
                 <select 

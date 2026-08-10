@@ -12,6 +12,7 @@ export const ticketService = {
             if (filter.priority !== undefined) queryParams.append('priority', filter.priority.toString());
             if (filter.deviceId) queryParams.append('deviceId', filter.deviceId);
             if (filter.assigneeId) queryParams.append('assigneeId', filter.assigneeId);
+            if (filter.requesterId) queryParams.append('requesterId', filter.requesterId);
         } else {
             queryParams.append('pageNumber', '1');
             queryParams.append('pageSize', '100');

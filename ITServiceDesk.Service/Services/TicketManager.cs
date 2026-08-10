@@ -47,9 +47,27 @@ public class TicketManager : ITicketService
         if (!isAdmin)
         {
             if (isTechnician)
-                involvedUserId = userId; // Technician sees where they are Requester or Assignee
+            {
+                if (filter.RequesterId.HasValue)
+                {
+                    exactRequesterId = filter.RequesterId;
+                    involvedUserId = null;
+                }
+                else if (filter.AssigneeId.HasValue)
+                {
+                    involvedUserId = null;
+                }
+                else 
+                {
+                    involvedUserId = userId; // Technician sees where they are Requester or Assignee
+                }
+            }
             else
                 exactRequesterId = userId; // Normal user sees only where they are Requester
+        }
+        else 
+        {
+            if (filter.RequesterId.HasValue) exactRequesterId = filter.RequesterId;
         }
 
         var (tickets, totalCount) = await _ticketRepository.GetPagedTicketsAsync(
@@ -234,6 +252,25 @@ public class TicketManager : ITicketService
         
         _ticketRepository.Remove(ticket);
         await _ticketRepository.SaveChangesAsync();
+
+        if (ticket.DeviceId.HasValue)
+        {
+            var device = await _deviceRepository.GetByIdAsync(ticket.DeviceId.Value);
+            if (device != null)
+            {
+                var allTickets = await _ticketRepository.GetAllAsync();
+                var hasOpenTickets = allTickets.Any(t => t.DeviceId == ticket.DeviceId && t.Id != ticket.Id && (t.Status == TicketStatus.Open || t.Status == TicketStatus.InProgress || t.Status == TicketStatus.WaitingForUser));
+                if (!hasOpenTickets)
+                {
+                    device.Status = Core.Enums.DeviceStatus.Active;
+                    _deviceRepository.Update(device);
+                    await _deviceRepository.SaveChangesAsync();
+                }
+            }
+        }
+
+        await _hubContext.Clients.All.SendAsync("TicketDeleted", id);
+        
         return true;
     }
 }

@@ -11,4 +11,5 @@ public class TicketFilterDto
     public Priority? Priority { get; set; }
     public Guid? DeviceId { get; set; }
     public Guid? AssigneeId { get; set; }
+    public Guid? RequesterId { get; set; }
 }

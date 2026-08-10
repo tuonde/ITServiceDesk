@@ -68,4 +68,5 @@ export interface TicketFilterDto {
     priority?: Priority;
     deviceId?: string;
     assigneeId?: string;
+    requesterId?: string;
 }

@@ -10,8 +10,8 @@ export interface NotificationDto {
 }
 
 const notificationService = {
-  getUnread: async (userId: string): Promise<NotificationDto[]> => {
-    const response = await api.get(`/api/notifications/user/${userId}`);
+  getUnread: async (): Promise<NotificationDto[]> => {
+    const response = await api.get(`/api/notifications/unread`);
     return response.data.data;
   },
 
@@ -25,8 +25,8 @@ const notificationService = {
     return response.data.data;
   },
 
-  markAllAsRead: async (userId: string): Promise<string> => {
-    const response = await api.put(`/api/notifications/user/${userId}/read-all`);
+  markAllAsRead: async (): Promise<string> => {
+    const response = await api.put(`/api/notifications/mark-as-read`);
     return response.data.data;
   }
 };

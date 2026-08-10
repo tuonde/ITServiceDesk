@@ -52,7 +52,7 @@ public class NotificationManager : INotificationService
     public async Task MarkAllAsReadAsync(Guid userId)
     {
         var all = await _repository.GetAllAsync();
-        var unread = all.Where(x => x.UserId == userId && !x.IsRead);
+        var unread = all.Where(x => x.UserId == userId && !x.IsRead).ToList();
         
         foreach (var item in unread)
         {

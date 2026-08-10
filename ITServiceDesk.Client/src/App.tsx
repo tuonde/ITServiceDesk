@@ -16,6 +16,8 @@ import Profile from './pages/Profile';
 import Reports from './pages/Reports';
 import Inventory from './pages/Inventory';
 import MyTasks from './pages/MyTasks';
+import MyInventory from './pages/MyInventory';
+import Help from './pages/Help';
 
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole: 'admin' | 'technician' }) => {
   const isAdmin = authService.isAdmin();
@@ -80,6 +82,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/my-inventory" element={<MyInventory />} />
+          <Route path="/help" element={<Help />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

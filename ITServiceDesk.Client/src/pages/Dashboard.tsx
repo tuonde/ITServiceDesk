@@ -15,37 +15,42 @@ const Dashboard: React.FC = () => {
 
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'requests'>('tasks');
 
   useEffect(() => {
     loadDashboardData();
 
-    const handleTicketCreated = (ticket: TicketResponseDto) => {
+    const handleSignalREvent = (ticket: TicketResponseDto) => {
       const currentUserId = authService.getUserId();
-      if (isAdmin || ticket.requesterId === currentUserId) {
-        loadDashboardData(); // Re-fetch to update charts and recent activities
-      }
-    };
-
-    const handleTicketUpdated = (ticket: TicketResponseDto) => {
-      const currentUserId = authService.getUserId();
-      if (isAdmin || ticket.requesterId === currentUserId) {
+      if (isAdmin || ticket.requesterId === currentUserId || ticket.assigneeId === currentUserId) {
         loadDashboardData();
       }
     };
 
-    signalrService.on('TicketCreated', handleTicketCreated);
-    signalrService.on('TicketUpdated', handleTicketUpdated);
+    signalrService.on('TicketCreated', handleSignalREvent);
+    signalrService.on('TicketUpdated', handleSignalREvent);
 
     return () => {
-      signalrService.off('TicketCreated', handleTicketCreated);
-      signalrService.off('TicketUpdated', handleTicketUpdated);
+      signalrService.off('TicketCreated', handleSignalREvent);
+      signalrService.off('TicketUpdated', handleSignalREvent);
     };
-  }, []);
+  }, [activeTab]);
 
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const ticketsResponse = await ticketService.getAll({ pageNumber: 1, pageSize: 100 });
+      const filterParams: any = { pageNumber: 1, pageSize: 100 };
+      const currentUserId = authService.getUserId();
+      
+      if (!isAdmin && isTechnician) {
+        if (activeTab === 'tasks') {
+          filterParams.assigneeId = currentUserId;
+        } else {
+          filterParams.requesterId = currentUserId;
+        }
+      }
+
+      const ticketsResponse = await ticketService.getAll(filterParams);
       setTickets(ticketsResponse.data || []);
     } catch (err) {
       console.error('Failed to load dashboard data', err);
@@ -142,7 +147,7 @@ const Dashboard: React.FC = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500"></span>
               </span>
-              Acil Müdahale Bekleyen Talepler
+              Acil Müdahale Bekleyen {!isAdmin && activeTab === 'tasks' ? 'Görevler' : 'Talepler'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {slaTickets.map(t => (
@@ -186,7 +191,7 @@ const Dashboard: React.FC = () => {
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
           <div>
-            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Açık Talepler' : 'Açık Taleplerim'}</p>
+            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Açık Talepler' : (activeTab === 'tasks' ? 'Açık Görevlerim' : 'Açık Taleplerim')}</p>
             <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : openTickets}</h3>
           </div>
         </div>
@@ -197,7 +202,7 @@ const Dashboard: React.FC = () => {
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <div>
-            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'İşlemdeki Talepler' : 'İşlemdeki Taleplerim'}</p>
+            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'İşlemdeki Talepler' : (activeTab === 'tasks' ? 'İşlemdeki Görevlerim' : 'İşlemdeki Taleplerim')}</p>
             <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : inProgressTickets}</h3>
           </div>
         </div>
@@ -208,7 +213,7 @@ const Dashboard: React.FC = () => {
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           </div>
           <div>
-            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Çözülenler' : 'Çözülen Taleplerim'}</p>
+            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Çözülenler' : (activeTab === 'tasks' ? 'Çözülen Görevlerim' : 'Çözülen Taleplerim')}</p>
             <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : resolvedTickets}</h3>
           </div>
         </div>
@@ -219,7 +224,7 @@ const Dashboard: React.FC = () => {
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <div>
-            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Geciken Talepler' : 'Geciken Taleplerim'}</p>
+            <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Geciken Talepler' : (activeTab === 'tasks' ? 'Geciken Görevlerim' : 'Geciken Taleplerim')}</p>
             <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : escalatedTickets}</h3>
           </div>
         </div>
@@ -323,7 +328,7 @@ const Dashboard: React.FC = () => {
       {/* Embedded Tickets for Technicians */}
       {isTechnician && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px] sm:min-h-[600px] flex flex-col p-3 mt-4 sm:p-6 sm:mt-6">
-          <Tickets mode="my-tasks" />
+          <Tickets mode={activeTab === 'tasks' ? 'my-tasks' : 'my-requests'} onModeChange={(mode) => setActiveTab(mode === 'my-tasks' ? 'tasks' : 'requests')} />
         </div>
       )}
 

@@ -3,7 +3,7 @@ using ITServiceDesk.Service.DTOs.Notifications;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-
+using System.Security.Claims;
 namespace ITServiceDesk.API.Controllers;
 
 [Authorize]
@@ -38,6 +38,22 @@ public class NotificationsController : ControllerBase
     [HttpPut("user/{userId}/read-all")]
     public async Task<IActionResult> MarkAllAsRead(Guid userId)
     {
+        await _service.MarkAllAsReadAsync(userId);
+        return Ok(ApiResponse<string>.Success("Tümü okundu olarak işaretlendi."));
+    }
+
+    [HttpGet("unread")]
+    public async Task<IActionResult> GetUnreadNotifications()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var result = await _service.GetUnreadByUserIdAsync(userId);
+        return Ok(ApiResponse<IEnumerable<NotificationResponseDto>>.Success(result));
+    }
+
+    [HttpPut("mark-as-read")]
+    public async Task<IActionResult> MarkUnreadAsRead()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         await _service.MarkAllAsReadAsync(userId);
         return Ok(ApiResponse<string>.Success("Tümü okundu olarak işaretlendi."));
     }
