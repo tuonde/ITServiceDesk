@@ -36,6 +36,18 @@ public class TicketsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string keyword)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        _ = Guid.TryParse(userIdClaim, out var userId);
+        
+        var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+
+        var result = await _ticketService.SearchAsync(keyword, userId, userRoles);
+        return Ok(ApiResponse<IEnumerable<TicketSearchDto>>.Success(result));
+    }
+
     [HttpGet("device/{deviceId}")]
     public async Task<IActionResult> GetByDeviceId(Guid deviceId)
     {

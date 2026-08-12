@@ -1,6 +1,6 @@
 import api from './api';
 import type { PagedResponse, ApiResponse } from '../types/api';
-import type { TicketResponseDto, TicketCreateDto, TicketFilterDto, TicketUpdateDto } from '../types/ticket';
+import type { TicketResponseDto, TicketCreateDto, TicketFilterDto, TicketUpdateDto, TicketSearchDto } from '../types/ticket';
 
 export const ticketService = {
     getAll: async (filter?: TicketFilterDto): Promise<PagedResponse<TicketResponseDto[]>> => {
@@ -68,5 +68,13 @@ export const ticketService = {
             throw new Error(response.data.message || 'Cihaz arıza geçmişi yüklenemedi.');
         }
         return response.data.data as TicketResponseDto[];
+    },
+
+    search: async (keyword: string): Promise<TicketSearchDto[]> => {
+        const response = await api.get<ApiResponse<TicketSearchDto[]>>(`/api/Tickets/search?keyword=${encodeURIComponent(keyword)}`);
+        if (!response.data.isSuccess) {
+            throw new Error(response.data.message || 'Arama yapılamadı.');
+        }
+        return response.data.data as TicketSearchDto[];
     }
 };

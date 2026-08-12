@@ -5,6 +5,7 @@ using ITServiceDesk.Service.DTOs.Comments;
 using ITServiceDesk.Service.DTOs.Attachments;
 using ITServiceDesk.Service.DTOs.Notifications;
 using ITServiceDesk.Service.DTOs.Auth;
+using ITServiceDesk.Service.DTOs.KnowledgeBase;
 
 namespace ITServiceDesk.Service.Mappings;
 
@@ -52,5 +53,16 @@ public class MapProfile : Profile
         CreateMap<TicketCategory, TicketCategoryDto>().ReverseMap();
         CreateMap<TicketCategoryCreateDto, TicketCategory>();
         CreateMap<TicketCategoryUpdateDto, TicketCategory>();
+        
+        // Knowledge Base
+        CreateMap<KbCategory, KbCategoryResponseDto>();
+        CreateMap<KbCategoryCreateDto, KbCategory>();
+        CreateMap<KbCategoryUpdateDto, KbCategory>();
+        
+        CreateMap<KbArticle, KbArticleResponseDto>()
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : "Bilinmiyor"))
+            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author != null ? src.Author.FirstName + " " + src.Author.LastName : "Bilinmiyor"));
+        CreateMap<KbArticleCreateDto, KbArticle>();
+        CreateMap<KbArticleUpdateDto, KbArticle>();
     }
 }

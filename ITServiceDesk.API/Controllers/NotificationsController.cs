@@ -45,7 +45,7 @@ public class NotificationsController : ControllerBase
     [HttpGet("unread")]
     public async Task<IActionResult> GetUnreadNotifications()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty);
         var result = await _service.GetUnreadByUserIdAsync(userId);
         return Ok(ApiResponse<IEnumerable<NotificationResponseDto>>.Success(result));
     }
@@ -53,7 +53,7 @@ public class NotificationsController : ControllerBase
     [HttpPut("mark-as-read")]
     public async Task<IActionResult> MarkUnreadAsRead()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty);
         await _service.MarkAllAsReadAsync(userId);
         return Ok(ApiResponse<string>.Success("Tümü okundu olarak işaretlendi."));
     }

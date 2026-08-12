@@ -23,6 +23,11 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
     public DbSet<Device> Devices { get; set; }
     public DbSet<DeviceCategory> DeviceCategories { get; set; }
     public DbSet<TicketCategory> TicketCategories { get; set; }
+    
+    // Knowledge Base
+    public DbSet<KbCategory> KbCategories { get; set; }
+    public DbSet<KbArticle> KbArticles { get; set; }
+    public DbSet<KbArticleFeedback> KbArticleFeedbacks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

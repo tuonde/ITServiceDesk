@@ -3,12 +3,33 @@ import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { signalrService } from '../services/signalrService';
 import toast from 'react-hot-toast';
-import { TicketStatus } from '../types/ticket';
+import { TicketStatus, Priority, type TicketSearchDto } from '../types/ticket';
 import { ticketService } from '../services/ticketService';
 import { settingsService } from '../services/settingsService';
 import { useSettings } from '../contexts/SettingsContext';
 import notificationService, { type NotificationDto } from '../services/notificationService';
 import { useNavigate } from 'react-router-dom';
+
+const getStatusConfig = (status: TicketStatus) => {
+  switch (status) {
+    case TicketStatus.Open: return { label: 'Açık', class: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    case TicketStatus.InProgress: return { label: 'İşlemde', class: 'bg-blue-100 text-blue-700 border-blue-200' };
+    case TicketStatus.WaitingForUser: return { label: 'Kullanıcı Bekleniyor', class: 'bg-amber-100 text-amber-700 border-amber-200' };
+    case TicketStatus.Resolved: return { label: 'Çözüldü', class: 'bg-purple-100 text-purple-700 border-purple-200' };
+    case TicketStatus.Closed: return { label: 'Kapalı', class: 'bg-slate-100 text-slate-700 border-slate-200' };
+    default: return { label: 'Bilinmiyor', class: 'bg-gray-100 text-gray-700 border-gray-200' };
+  }
+};
+
+const getPriorityConfig = (priority: Priority) => {
+  switch (priority) {
+    case Priority.Low: return { label: 'Düşük', class: 'bg-slate-100 text-slate-700 border-slate-200' };
+    case Priority.Medium: return { label: 'Orta', class: 'bg-blue-100 text-blue-700 border-blue-200' };
+    case Priority.High: return { label: 'Yüksek', class: 'bg-amber-100 text-amber-700 border-amber-200' };
+    case Priority.Critical: return { label: 'Kritik', class: 'bg-rose-100 text-rose-700 border-rose-200' };
+    default: return { label: 'Bilinmiyor', class: 'bg-gray-100 text-gray-700 border-gray-200' };
+  }
+};
 
 const MainLayout: React.FC = () => {
   const { settings } = useSettings();
@@ -42,7 +63,14 @@ const MainLayout: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(new Date());
   const notifRef = React.useRef<HTMLDivElement>(null);
+  const searchRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState<TicketSearchDto[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -54,10 +82,40 @@ const MainLayout: React.FC = () => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  React.useEffect(() => {
+    if (debouncedSearchTerm.trim().length > 0) {
+      setIsSearching(true);
+      ticketService.search(debouncedSearchTerm)
+        .then(res => {
+          setSearchResults(res);
+          setIsSearchOpen(true);
+        })
+        .catch(() => {
+          setSearchResults([]);
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    } else {
+      setSearchResults([]);
+      setIsSearchOpen(false);
+    }
+  }, [debouncedSearchTerm]);
 
   React.useEffect(() => {
     const fetchLogo = async () => {
@@ -169,20 +227,71 @@ const MainLayout: React.FC = () => {
         </div>
 
         {/* Topbar Middle: Search Bar */}
-        {isAdmin && (
-          <div className="flex-1 max-w-xl px-8 hidden md:block">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              </div>
-              <input
-                type="text"
-                placeholder="Talep Ara... (Şimdilik işlevsiz)"
-                className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm transition-all"
-              />
+        <div className="flex-1 max-w-xl px-8 hidden md:block">
+          <div className="relative group" ref={searchRef}>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
+            <input
+              type="text"
+              placeholder="Talep Ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => { if (searchTerm.trim().length > 0) setIsSearchOpen(true); }}
+              className="block w-full pl-10 pr-10 py-2 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 sm:text-sm transition-all"
+            />
+            {isSearching && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <svg className="animate-spin h-4 w-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            )}
+
+            {isSearchOpen && (
+              <div className="absolute top-full left-8 right-8 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-[100] max-h-96 overflow-y-auto">
+                {searchResults.length > 0 ? (
+                  <ul className="divide-y divide-slate-100">
+                    {searchResults.map(ticket => {
+                      const statusConfig = getStatusConfig(ticket.status);
+                      const priorityConfig = getPriorityConfig(ticket.priority);
+                      return (
+                        <li key={ticket.id}>
+                          <button
+                            onClick={() => {
+                              setIsSearchOpen(false);
+                              setSearchTerm('');
+                              navigate(`/tickets`, { state: { openTicketId: ticket.id } });
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex flex-col gap-1 focus:outline-none focus:bg-slate-50"
+                          >
+                            <span className="font-semibold text-slate-800 text-sm truncate">{ticket.title}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${statusConfig.class}`}>
+                                {statusConfig.label}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${priorityConfig.class}`}>
+                                {priorityConfig.label}
+                              </span>
+                              <span className="text-xs text-slate-400 ml-auto">
+                                {new Date(ticket.createdAt).toLocaleDateString('tr-TR')}
+                              </span>
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                    Eşleşen talep bulunamadı.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Topbar Middle: Navigation for Users and Technicians */}
         {!isAdmin && (
@@ -345,6 +454,10 @@ const MainLayout: React.FC = () => {
                   <Link to="/departments" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isDepartmentsPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                     Departmanlar
+                  </Link>
+                  <Link to="/kb-admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${location.pathname.startsWith('/kb-admin') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                    Bilgi Bankası Ynt.
                   </Link>
                   <Link to="/reports" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isReportsPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>

@@ -16,4 +16,7 @@ public class Attachment : BaseEntity
     
     public Guid? UploaderId { get; set; }
     public AppUser? Uploader { get; set; }
+    
+    public Guid? KbArticleId { get; set; }
+    public KbArticle? KbArticle { get; set; }
 }

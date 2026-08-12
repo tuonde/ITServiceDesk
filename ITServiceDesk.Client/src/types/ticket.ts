@@ -70,3 +70,11 @@ export interface TicketFilterDto {
     assigneeId?: string;
     requesterId?: string;
 }
+
+export interface TicketSearchDto {
+    id: string;
+    title: string;
+    status: TicketStatus;
+    priority: Priority;
+    createdAt: string;
+}

@@ -33,7 +33,7 @@ public class SettingsController : ControllerBase
     public async Task<IActionResult> UpdateSettings([FromBody] SystemSettingsDto dto)
     {
         await _settingsService.UpdateSettingsAsync(dto);
-        return Ok(ApiResponse<string>.Success(null, "Ayarlar başarıyla güncellendi."));
+        return Ok(ApiResponse<string>.Success(string.Empty, "Ayarlar başarıyla güncellendi."));
     }
 
     [HttpPost("upload-logo")]

@@ -22,5 +22,10 @@ public class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
             .WithMany(c => c.Attachments)
             .HasForeignKey(a => a.CommentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.KbArticle)
+            .WithMany(k => k.Attachments)
+            .HasForeignKey(a => a.KbArticleId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

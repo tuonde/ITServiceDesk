@@ -22,7 +22,7 @@ public class AuditLogsController : ControllerBase
         [FromQuery] int pageSize = 50,
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] string action = null)
+        [FromQuery] string? action = null)
     {
         var result = await _auditLogService.GetAllLogsAsync(pageNumber, pageSize, startDate, endDate, action);
         return Ok(result);

@@ -117,6 +117,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 builder.Services.AddScoped<ITicketRepository, EfTicketRepository>();
 builder.Services.AddScoped<ITicketCategoryRepository, EfTicketCategoryRepository>();
+builder.Services.AddScoped<IKbArticleRepository, KbArticleRepository>();
 
 // Services
 builder.Services.AddScoped<ITicketService, TicketManager>();
@@ -130,6 +131,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 builder.Services.AddScoped<IDeviceService, DeviceManager>();
 builder.Services.AddScoped<ITicketCategoryService, TicketCategoryManager>();
+builder.Services.AddScoped<IKbArticleService, KbArticleManager>();
+builder.Services.AddScoped<IKbCategoryService, KbCategoryManager>();
 builder.Services.AddHttpContextAccessor();
 
 // Background Workers

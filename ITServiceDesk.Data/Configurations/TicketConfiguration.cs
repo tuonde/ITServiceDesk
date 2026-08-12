@@ -11,6 +11,7 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Title).IsRequired().HasMaxLength(200);
         builder.Property(t => t.Description).IsRequired();
+        builder.Property(t => t.RepairCost).HasColumnType("decimal(18,2)");
 
         builder.HasOne(t => t.Requester)
             .WithMany(u => u.CreatedTickets)

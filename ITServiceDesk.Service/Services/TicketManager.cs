@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using ITServiceDesk.Core.Enums;
 using Microsoft.AspNetCore.SignalR;
 using ITServiceDesk.Service.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace ITServiceDesk.Service.Services;
 
@@ -87,6 +88,48 @@ public class TicketManager : ITicketService
             filter.PageNumber, 
             filter.PageSize, 
             totalCount);
+    }
+
+    public async Task<IEnumerable<TicketSearchDto>> SearchAsync(string keyword, Guid userId, IList<string> userRoles)
+    {
+        var isAdmin = userRoles.Contains("Admin");
+        var isTechnician = userRoles.Contains("Technician");
+
+        var query = _ticketRepository.Query().Where(t => !t.IsDeleted);
+
+        if (!isAdmin)
+        {
+            if (isTechnician)
+            {
+                query = query.Where(t => t.RequesterId == userId || t.AssigneeId == userId);
+            }
+            else
+            {
+                query = query.Where(t => t.RequesterId == userId);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(t => 
+                t.Title.Contains(keyword) || 
+                t.Description.Contains(keyword));
+        }
+
+        var results = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(10)
+            .Select(t => new TicketSearchDto
+            {
+                Id = t.Id,
+                Title = t.Title,
+                Status = t.Status,
+                Priority = t.Priority,
+                CreatedAt = t.CreatedAt
+            })
+            .ToListAsync();
+
+        return results;
     }
 
     public async Task<TicketResponseDto?> GetByIdAsync(Guid id)

@@ -19,6 +19,12 @@ import MyTasks from './pages/MyTasks';
 import MyInventory from './pages/MyInventory';
 import Help from './pages/Help';
 
+// Knowledge Base
+import { KbDashboard } from './pages/knowledgeBase/KbDashboard';
+import { KbCategories } from './pages/knowledgeBase/KbCategories';
+import { KbArticlesList } from './pages/knowledgeBase/KbArticlesList';
+import { KbArticleEditor } from './pages/knowledgeBase/KbArticleEditor';
+
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole: 'admin' | 'technician' }) => {
   const isAdmin = authService.isAdmin();
   const isTechnician = authService.isTechnician();
@@ -84,6 +90,23 @@ function App() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/my-inventory" element={<MyInventory />} />
           <Route path="/help" element={<Help />} />
+          
+          {/* Knowledge Base Admin Routes */}
+          <Route path="/kb-admin" element={
+            <ProtectedRoute requiredRole="admin"><KbDashboard /></ProtectedRoute>
+          } />
+          <Route path="/kb-admin/categories" element={
+            <ProtectedRoute requiredRole="admin"><KbCategories /></ProtectedRoute>
+          } />
+          <Route path="/kb-admin/articles" element={
+            <ProtectedRoute requiredRole="admin"><KbArticlesList /></ProtectedRoute>
+          } />
+          <Route path="/kb-admin/articles/new" element={
+            <ProtectedRoute requiredRole="admin"><KbArticleEditor /></ProtectedRoute>
+          } />
+          <Route path="/kb-admin/articles/edit/:id" element={
+            <ProtectedRoute requiredRole="admin"><KbArticleEditor /></ProtectedRoute>
+          } />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

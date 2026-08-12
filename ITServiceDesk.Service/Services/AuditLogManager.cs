@@ -33,7 +33,7 @@ public class AuditLogManager : IAuditLogService
         await _repository.AddAsync(log);
     }
 
-    public async Task<PagedResponse<IEnumerable<AuditLogResponseDto>>> GetAllLogsAsync(int pageNumber, int pageSize, DateTime? startDate = null, DateTime? endDate = null, string action = null)
+    public async Task<PagedResponse<IEnumerable<AuditLogResponseDto>>> GetAllLogsAsync(int pageNumber, int pageSize, DateTime? startDate = null, DateTime? endDate = null, string? action = null)
     {
         var query = _context.AuditLogs
             .Where(x => (x.OldValue == null || !x.OldValue.Contains("PasswordHash")) && 
@@ -63,7 +63,7 @@ public class AuditLogManager : IAuditLogService
             .Take(pageSize)
             .ToListAsync();
 
-        var userIds = logs.Where(l => l.UserId.HasValue).Select(l => l.UserId.Value).Distinct().ToList();
+        var userIds = logs.Where(l => l.UserId.HasValue).Select(l => l.UserId!.Value).Distinct().ToList();
         var users = await _context.Users
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => new { u.FirstName, u.LastName, u.Email });
