@@ -18,6 +18,7 @@ import Inventory from './pages/Inventory';
 import MyTasks from './pages/MyTasks';
 import MyInventory from './pages/MyInventory';
 import Help from './pages/Help';
+import { HelpArticleDetail } from './pages/knowledgeBase/HelpArticleDetail';
 
 // Knowledge Base
 import { KbDashboard } from './pages/knowledgeBase/KbDashboard';
@@ -90,6 +91,7 @@ function App() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/my-inventory" element={<MyInventory />} />
           <Route path="/help" element={<Help />} />
+          <Route path="/help/article/:id" element={<HelpArticleDetail />} />
           
           {/* Knowledge Base Admin Routes */}
           <Route path="/kb-admin" element={

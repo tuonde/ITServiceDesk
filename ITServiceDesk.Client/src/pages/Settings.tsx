@@ -3,7 +3,10 @@ import { toast } from 'react-hot-toast';
 import { settingsService } from '../services/settingsService';
 import { useSettings } from '../contexts/SettingsContext';
 import { systemSettingsService, type SystemSettingsDto } from '../services/systemSettingsService';
-
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card, CardContent } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
 export default function Settings() {
   const { settings, refreshSettings } = useSettings();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -80,12 +83,12 @@ export default function Settings() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Sistem Ayarları</h1>
-        <p className="text-sm text-slate-500 mt-1">Sistemin genel ayarlarını ve görselliğini yapılandırın.</p>
-      </div>
+      <PageHeader 
+        title="Sistem Ayarları"
+        description="Sistemin genel ayarlarını ve görselliğini yapılandırın."
+      />
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+      <Card className="p-6">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Uygulama Logosu</h2>
         
         <div className="flex flex-col sm:flex-row items-center gap-8">
@@ -119,95 +122,96 @@ export default function Settings() {
               className="hidden" 
             />
             
-            <button 
+            <Button 
               onClick={handleUploadClick}
               disabled={loading}
-              className="px-6 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-colors font-medium shadow-sm inline-flex items-center gap-2"
+              variant="outline"
+              className="bg-slate-800 text-white hover:bg-slate-900 border-transparent shadow-sm inline-flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
               Dosya Seç
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <form onSubmit={handleSettingsSubmit} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-800">Genel Ayarlar</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Uygulama Adı</label>
-                <input 
-                  type="text" 
-                  value={formData.appName}
-                  onChange={(e) => setFormData({...formData, appName: e.target.value})}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                  required
-                />
+      <form onSubmit={handleSettingsSubmit}>
+        <Card>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-slate-800">Genel Ayarlar</h2>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Uygulama Adı</label>
+                  <Input 
+                    type="text" 
+                    value={formData.appName}
+                    onChange={(e) => setFormData({...formData, appName: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-slate-800">Güvenlik Ayarları</h2>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Oturum Zaman Aşımı (Dakika)</label>
+                  <Input 
+                    type="number" 
+                    min="1"
+                    max="1440"
+                    value={formData.sessionTimeoutMinutes.toString()}
+                    onChange={(e) => setFormData({...formData, sessionTimeoutMinutes: parseInt(e.target.value) || 30})}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Şifre Minimum Uzunluk</label>
+                  <Input 
+                    type="number" 
+                    min="4"
+                    max="32"
+                    value={formData.passwordMinLength.toString()}
+                    onChange={(e) => setFormData({...formData, passwordMinLength: parseInt(e.target.value) || 6})}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <input 
+                    type="checkbox" 
+                    id="requireUppercase"
+                    checked={formData.passwordRequireUppercase}
+                    onChange={(e) => setFormData({...formData, passwordRequireUppercase: e.target.checked})}
+                    className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                  />
+                  <label htmlFor="requireUppercase" className="text-sm font-medium text-slate-700 select-none">
+                    Şifrede en az bir büyük harf zorunlu olsun
+                  </label>
+                </div>
               </div>
             </div>
+          </CardContent>
 
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-800">Güvenlik Ayarları</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Oturum Zaman Aşımı (Dakika)</label>
-                <input 
-                  type="number" 
-                  min="1"
-                  max="1440"
-                  value={formData.sessionTimeoutMinutes}
-                  onChange={(e) => setFormData({...formData, sessionTimeoutMinutes: parseInt(e.target.value) || 30})}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Şifre Minimum Uzunluk</label>
-                <input 
-                  type="number" 
-                  min="4"
-                  max="32"
-                  value={formData.passwordMinLength}
-                  onChange={(e) => setFormData({...formData, passwordMinLength: parseInt(e.target.value) || 6})}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <input 
-                  type="checkbox" 
-                  id="requireUppercase"
-                  checked={formData.passwordRequireUppercase}
-                  onChange={(e) => setFormData({...formData, passwordRequireUppercase: e.target.checked})}
-                  className="w-5 h-5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
-                />
-                <label htmlFor="requireUppercase" className="text-sm font-medium text-slate-700 select-none">
-                  Şifrede en az bir büyük harf zorunlu olsun
-                </label>
-              </div>
-            </div>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end rounded-b-2xl">
+            <Button 
+              type="submit"
+              disabled={savingSettings}
+              variant="primary"
+              className="inline-flex items-center gap-2"
+            >
+              {savingSettings ? (
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              )}
+              Ayarları Kaydet
+            </Button>
           </div>
-        </div>
-
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
-          <button 
-            type="submit"
-            disabled={savingSettings}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {savingSettings ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-            )}
-            Ayarları Kaydet
-          </button>
-        </div>
+        </Card>
       </form>
     </div>
   );

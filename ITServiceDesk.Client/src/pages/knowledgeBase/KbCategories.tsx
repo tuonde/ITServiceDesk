@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { kbCategoryService } from '../../services/kbCategoryService';
 import type { KbCategory, KbCategoryCreateDto, KbCategoryUpdateDto } from '../../types/knowledgeBase';
 import { KB_ICONS, getCategoryIcon } from '../../utils/iconMapper';
@@ -84,6 +85,9 @@ export const KbCategories: React.FC = () => {
         <div className="p-8 max-w-7xl mx-auto space-y-6">
             <div className="flex justify-between items-center mb-8">
                 <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Link to="/kb-admin" className="text-emerald-600 hover:text-emerald-700 font-medium">← Bilgi Bankası</Link>
+                    </div>
                     <h1 className="text-2xl font-bold text-slate-800">Kategori Yönetimi</h1>
                     <p className="text-sm text-slate-500 mt-1">Bilgi bankası kategorilerini ekleyin veya düzenleyin.</p>
                 </div>

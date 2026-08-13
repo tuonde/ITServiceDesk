@@ -110,10 +110,6 @@ public class KbArticleManager : IKbArticleService
 
         var dto = _mapper.Map<KbArticleResponseDto>(article);
         
-        // Compute feedback
-        dto.HelpfulCount = article.Feedbacks.Count(f => f.IsHelpful && !f.IsDeleted);
-        dto.NotHelpfulCount = article.Feedbacks.Count(f => !f.IsHelpful && !f.IsDeleted);
-
         return dto;
     }
 

@@ -6,6 +6,9 @@ import { authService } from '../services/authService';
 import { type DeviceDto, DeviceStatus } from '../types/device';
 import { type TicketResponseDto, TicketStatus } from '../types/ticket';
 import toast from 'react-hot-toast';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
 
 const MyInventory: React.FC = () => {
   const [devices, setDevices] = useState<DeviceDto[]>([]);
@@ -67,10 +70,10 @@ const MyInventory: React.FC = () => {
 
   const getStatusBadge = (status: DeviceStatus) => {
     switch (status) {
-      case DeviceStatus.Active: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm">Aktif</span>;
-      case DeviceStatus.Faulty: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-100 text-rose-700 border border-rose-200 shadow-sm">Arızalı</span>;
-      case DeviceStatus.Maintenance: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200 shadow-sm">Bakımda</span>;
-      case DeviceStatus.Storage: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200 shadow-sm">Depoda</span>;
+      case DeviceStatus.Active: return <Badge variant="emerald">Aktif</Badge>;
+      case DeviceStatus.Faulty: return <Badge variant="rose">Arızalı</Badge>;
+      case DeviceStatus.Maintenance: return <Badge variant="amber">Bakımda</Badge>;
+      case DeviceStatus.Storage: return <Badge variant="slate">Depoda</Badge>;
       default: return null;
     }
   };
@@ -90,44 +93,46 @@ const MyInventory: React.FC = () => {
   };
 
   const renderDeviceCard = (device: DeviceDto, isPersonal: boolean) => (
-    <div key={device.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group relative overflow-hidden flex flex-col">
+    <Card key={device.id} className="p-0 overflow-hidden flex flex-col group relative">
       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${isPersonal ? 'from-emerald-50 to-transparent' : 'from-indigo-50 to-transparent'} rounded-full -mr-16 -mt-16 z-0 opacity-50 group-hover:scale-150 transition-transform duration-500`}></div>
       
-      <div className="relative z-10 flex items-start justify-between mb-4">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isPersonal ? 'bg-emerald-100 text-emerald-600 border border-emerald-200' : 'bg-indigo-100 text-indigo-600 border border-indigo-200'}`}>
-           {getDeviceIcon(device.categoryName)}
+      <div className="relative z-10 p-5 flex flex-col flex-1">
+        <div className="flex items-start justify-between mb-4">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isPersonal ? 'bg-emerald-100 text-emerald-600 border border-emerald-200' : 'bg-indigo-100 text-indigo-600 border border-indigo-200'}`}>
+             {getDeviceIcon(device.categoryName)}
+          </div>
+          <div>
+            {getStatusBadge(device.status)}
+          </div>
         </div>
-        <div>
-          {getStatusBadge(device.status)}
+        
+        <div className="flex-1 mb-6">
+          <h3 className="text-lg font-bold text-slate-800 line-clamp-2 leading-tight mb-1" title={device.name}>{device.name}</h3>
+          <p className="text-sm font-medium text-slate-500">{device.code}</p>
+          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+            {device.categoryName}
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 mt-auto">
+           <button 
+             onClick={() => openDrawer(device)}
+             className="w-full py-2.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
+           >
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+             Geçmiş
+           </button>
+           <button 
+             onClick={() => reportIssue(device)}
+             className="w-full py-2.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition-colors flex items-center justify-center gap-1.5 shadow-sm shadow-rose-100"
+           >
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+             Arıza Bildir
+           </button>
         </div>
       </div>
-      
-      <div className="relative z-10 flex-1 mb-6">
-        <h3 className="text-lg font-bold text-slate-800 line-clamp-2 leading-tight mb-1" title={device.name}>{device.name}</h3>
-        <p className="text-sm font-medium text-slate-500">{device.code}</p>
-        <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-          {device.categoryName}
-        </p>
-      </div>
-      
-      <div className="relative z-10 grid grid-cols-2 gap-2 mt-auto">
-         <button 
-           onClick={() => openDrawer(device)}
-           className="w-full py-2.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
-         >
-           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-           Geçmiş
-         </button>
-         <button 
-           onClick={() => reportIssue(device)}
-           className="w-full py-2.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition-colors flex items-center justify-center gap-1.5 shadow-sm shadow-rose-100"
-         >
-           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-           Arıza Bildir
-         </button>
-      </div>
-    </div>
+    </Card>
   );
 
   if (isLoading) {
@@ -154,10 +159,9 @@ const MyInventory: React.FC = () => {
         </div>
         
         {myDevices.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center flex flex-col items-center justify-center">
-            <svg className="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p className="text-slate-500 font-medium">Üzerinize zimmetlenmiş bir cihaz bulunmuyor.</p>
-          </div>
+          <Card className="p-12">
+            <EmptyState title="Zimmet Bulunamadı" description="Üzerinize zimmetlenmiş bir cihaz bulunmuyor." />
+          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {myDevices.map(d => renderDeviceCard(d, true))}
@@ -180,10 +184,9 @@ const MyInventory: React.FC = () => {
         </div>
         
         {departmentDevices.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center flex flex-col items-center justify-center">
-            <svg className="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p className="text-slate-500 font-medium">Departmanınıza ait ortak bir cihaz bulunmuyor.</p>
-          </div>
+          <Card className="p-12">
+            <EmptyState title="Cihaz Bulunamadı" description="Departmanınıza ait ortak bir cihaz bulunmuyor." />
+          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {departmentDevices.map(d => renderDeviceCard(d, false))}

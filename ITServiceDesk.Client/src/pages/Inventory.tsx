@@ -10,6 +10,16 @@ import { type TicketResponseDto, TicketStatus } from '../types/ticket';
 import { type UserListDto } from '../types/user';
 import { toast } from 'react-hot-toast';
 import CreatableSelect from 'react-select/creatable';
+import { Card } from '../components/ui/Card';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/Table';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { Badge } from '../components/ui/Badge';
 
 const Inventory: React.FC = () => {
   const [devices, setDevices] = useState<DeviceDto[]>([]);
@@ -211,40 +221,35 @@ const Inventory: React.FC = () => {
 
   const getStatusBadge = (status: DeviceStatus) => {
     switch (status) {
-      case DeviceStatus.Active: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Aktif</span>;
-      case DeviceStatus.Faulty: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-100 text-rose-700">Arızalı</span>;
-      case DeviceStatus.Maintenance: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">Bakımda</span>;
-      case DeviceStatus.Storage: return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">Depoda</span>;
+      case DeviceStatus.Active: return <Badge variant="emerald">Aktif</Badge>;
+      case DeviceStatus.Faulty: return <Badge variant="rose">Arızalı</Badge>;
+      case DeviceStatus.Maintenance: return <Badge variant="amber">Bakımda</Badge>;
+      case DeviceStatus.Storage: return <Badge variant="slate">Depoda</Badge>;
       default: return null;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      <div className="flex flex-col h-full space-y-6">
+        <PageHeader title="Envanter Yönetimi" description="Sistemdeki tüm cihazlarınızı yönetin ve durumlarını takip edin." />
+        <Card className="flex-1 overflow-hidden p-0">
+          <TableSkeleton rows={5} />
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <div className="flex justify-between items-center shrink-0">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">Envanter Yönetimi</h2>
-          <p className="text-sm text-slate-500 mt-1">Sistemdeki tüm cihazlarınızı yönetin ve durumlarını takip edin.</p>
-        </div>
-        <button
-          onClick={() => openModal()}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm shadow-emerald-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Yeni Cihaz
-        </button>
-      </div>
+    <div className="flex flex-col h-full space-y-6">
+      <PageHeader 
+        title="Envanter Yönetimi" 
+        description="Sistemdeki tüm cihazlarınızı yönetin ve durumlarını takip edin." 
+        action={{ label: "Yeni Cihaz", onClick: () => openModal() }}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+        <Card className="p-5 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Toplam Cihaz</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{totalCount}</p>
@@ -252,8 +257,8 @@ const Inventory: React.FC = () => {
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
           </div>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Aktif Kullanımda</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{activeCount}</p>
@@ -261,8 +266,8 @@ const Inventory: React.FC = () => {
           <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Arızalı / Bakımda</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{faultCount}</p>
@@ -270,8 +275,8 @@ const Inventory: React.FC = () => {
           <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           </div>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Boşta / Depoda</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{storageCount}</p>
@@ -279,200 +284,211 @@ const Inventory: React.FC = () => {
           <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-0">
-        <div className="p-4 border-b border-slate-100 flex gap-4 flex-wrap shrink-0">
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-slate-100 bg-white flex flex-col md:flex-row gap-4 shrink-0">
           <div className="flex-1 min-w-[200px]">
-            <input
+            <Input
               type="text"
               placeholder="Cihaz kodu veya adı ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 outline-none"
+              className="w-full"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value === 'All' ? 'All' : Number(e.target.value) as DeviceStatus)}
-            className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 outline-none min-w-[150px]"
-          >
-            <option value="All">Tüm Cihazlar</option>
-            <option value={DeviceStatus.Active}>Aktif</option>
-            <option value={DeviceStatus.Faulty}>Arızalı</option>
-            <option value={DeviceStatus.Maintenance}>Bakımda</option>
-            <option value={DeviceStatus.Storage}>Depoda</option>
-          </select>
-          <select
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 outline-none min-w-[150px]"
-          >
-            <option value="All">Tüm Departmanlar</option>
-            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          <div className="w-full md:w-48">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value === 'All' ? 'All' : Number(e.target.value) as DeviceStatus)}
+            >
+              <option value="All">Tüm Cihazlar</option>
+              <option value={DeviceStatus.Active}>Aktif</option>
+              <option value={DeviceStatus.Faulty}>Arızalı</option>
+              <option value={DeviceStatus.Maintenance}>Bakımda</option>
+              <option value={DeviceStatus.Storage}>Depoda</option>
+            </Select>
+          </div>
+          <div className="w-full md:w-56">
+            <Select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              <option value="All">Tüm Departmanlar</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </Select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50/80 text-slate-500 text-sm font-medium sticky top-0 z-10 backdrop-blur-sm">
-              <tr>
-                <th className="px-6 py-4 border-b border-slate-100">Cihaz Kodu</th>
-                <th className="px-6 py-4 border-b border-slate-100">Cihaz Adı / Modeli</th>
-                <th className="px-6 py-4 border-b border-slate-100">Kategori</th>
-                <th className="px-6 py-4 border-b border-slate-100">Konum</th>
-                <th className="px-6 py-4 border-b border-slate-100">Durum</th>
-                <th className="px-6 py-4 border-b border-slate-100 text-right">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-slate-50">
-              {filteredDevices.map(device => (
-                <tr key={device.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => openDrawer(device)}>
-                  <td className="px-6 py-4 font-medium text-slate-900">{device.code}</td>
-                  <td className="px-6 py-4 text-slate-600">{device.name}</td>
-                  <td className="px-6 py-4 text-slate-600">{device.categoryName}</td>
-                  <td className="px-6 py-4 text-slate-600">{device.departmentName || '-'}</td>
-                  <td className="px-6 py-4">{getStatusBadge(device.status)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openModal(device); }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Düzenle"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(device.id); }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Sil"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredDevices.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">Sonuç bulunamadı</td>
-                </tr>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cihaz Kodu</TableHead>
+                <TableHead>Cihaz Adı / Modeli</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead>Konum</TableHead>
+                <TableHead>Durum</TableHead>
+                <TableHead className="text-right">İşlemler</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDevices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-64">
+                     <EmptyState title="Cihaz Bulunamadı" description="Arama kriterlerinize uygun cihaz bulunmuyor." />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDevices.map(device => (
+                  <TableRow key={device.id} className="cursor-pointer group hover:bg-slate-50/50 transition-colors" onClick={() => openDrawer(device)}>
+                    <TableCell className="font-medium text-slate-900">{device.code}</TableCell>
+                    <TableCell className="text-slate-600">{device.name}</TableCell>
+                    <TableCell className="text-slate-600">{device.categoryName}</TableCell>
+                    <TableCell className="text-slate-600">{device.departmentName || '-'}</TableCell>
+                    <TableCell>{getStatusBadge(device.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={(e) => { e.stopPropagation(); openModal(device); }}
+                          title="Düzenle"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={(e) => { e.stopPropagation(); handleDelete(device.id); }}
+                          title="Sil"
+                          className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-800">{selectedDevice ? 'Cihaz Düzenle' : 'Yeni Cihaz'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {selectedDevice && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Cihaz Kodu</label>
-                  <input readOnly type="text" value={formData.code} className="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-mono cursor-not-allowed outline-none" />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cihaz Adı / Modeli</label>
-                <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                <CreatableSelect
-                  isClearable
-                  placeholder="Kategori Seçin veya Yazın..."
-                  options={categories.map(c => ({ value: c.id, label: c.name }))}
-                  value={formData.categoryId ? { value: formData.categoryId, label: categories.find(c => c.id === formData.categoryId)?.name } : null}
-                  onChange={async (newValue: any, actionMeta: any) => {
-                    if (actionMeta.action === 'create-option') {
-                      try {
-                        const newCat = await deviceCategoryService.create(newValue.value);
-                        setCategories(prev => [...prev, newCat]);
-                        setFormData({ ...formData, categoryId: newCat.id });
-                        toast.success('Yeni kategori eklendi');
-                      } catch (e) {
-                        toast.error('Kategori oluşturulamadı');
-                      }
-                    } else {
-                      setFormData({ ...formData, categoryId: newValue ? newValue.value : '' });
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <ModalHeader title={selectedDevice ? 'Cihaz Düzenle' : 'Yeni Cihaz'} onClose={() => setIsModalOpen(false)} />
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          <ModalContent className="space-y-4">
+            {selectedDevice && (
+              <Input 
+                label="Cihaz Kodu" 
+                readOnly 
+                value={formData.code} 
+                className="font-mono bg-slate-100 text-slate-500 cursor-not-allowed" 
+              />
+            )}
+            <Input 
+              required 
+              label="Cihaz Adı / Modeli" 
+              value={formData.name} 
+              onChange={e => setFormData({ ...formData, name: e.target.value })} 
+            />
+            
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori</label>
+              <CreatableSelect
+                isClearable
+                placeholder="Kategori Seçin veya Yazın..."
+                options={categories.map(c => ({ value: c.id, label: c.name }))}
+                value={formData.categoryId ? { value: formData.categoryId, label: categories.find(c => c.id === formData.categoryId)?.name } : null}
+                onChange={async (newValue: any, actionMeta: any) => {
+                  if (actionMeta.action === 'create-option') {
+                    try {
+                      const newCat = await deviceCategoryService.create(newValue.value);
+                      setCategories(prev => [...prev, newCat]);
+                      setFormData({ ...formData, categoryId: newCat.id });
+                      toast.success('Yeni kategori eklendi');
+                    } catch (e) {
+                      toast.error('Kategori oluşturulamadı');
                     }
-                  }}
-                  formatCreateLabel={(inputValue) => `"${inputValue}" - yeni kategori oluştur`}
-                  classNamePrefix="react-select"
-                  styles={{
-                    control: (base, state) => ({
-                      ...base,
-                      borderRadius: '0.75rem',
-                      borderColor: state.isFocused ? '#10b981' : '#e2e8f0',
-                      boxShadow: state.isFocused ? '0 0 0 2px rgba(16, 185, 129, 0.2)' : 'none',
-                      '&:hover': {
-                        borderColor: '#10b981'
-                      },
-                      padding: '2px'
-                    }),
-                    menu: (base) => ({
-                      ...base,
-                      borderRadius: '0.75rem',
-                      overflow: 'hidden',
-                      zIndex: 9999
-                    }),
-                    option: (base, state) => ({
-                      ...base,
-                      backgroundColor: state.isFocused ? '#ecfdf5' : 'white',
-                      color: state.isFocused ? '#047857' : '#334155',
-                      cursor: 'pointer',
-                      '&:active': {
-                        backgroundColor: '#d1fae5'
-                      }
-                    })
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Departman</label>
-                <select value={formData.departmentId || ''} onChange={e => {
-                  setFormData({ ...formData, departmentId: e.target.value || null, assignedUserId: null });
-                }} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
-                  <option value="">-- Departman Yok --</option>
-                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              </div>
-              {formData.departmentId && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Zimmetli Personel</label>
-                  <select value={formData.assignedUserId || ''} onChange={e => setFormData({ ...formData, assignedUserId: e.target.value || null })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
-                    <option value="">-- Zimmet Yok (Ortak Kullanım) --</option>
-                    {users.filter(u => u.departmentId === formData.departmentId).map(u => (
-                      <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Durum</label>
-                <select value={formData.status} onChange={e => setFormData({ ...formData, status: Number(e.target.value) as DeviceStatus })} className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:border-emerald-500 outline-none bg-white">
-                  <option value={DeviceStatus.Active}>Aktif</option>
-                  <option value={DeviceStatus.Faulty}>Arızalı</option>
-                  <option value={DeviceStatus.Maintenance}>Bakımda</option>
-                  <option value={DeviceStatus.Storage}>Depoda</option>
-                </select>
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 text-slate-600 bg-slate-100 rounded-xl font-medium hover:bg-slate-200 transition-colors">İptal</button>
-                <button type="submit" className="flex-1 px-4 py-2 text-white bg-emerald-600 rounded-xl font-medium hover:bg-emerald-700 transition-colors">Kaydet</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                  } else {
+                    setFormData({ ...formData, categoryId: newValue ? newValue.value : '' });
+                  }
+                }}
+                formatCreateLabel={(inputValue) => `"${inputValue}" - yeni kategori oluştur`}
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    borderColor: state.isFocused ? '#10b981' : '#e2e8f0',
+                    boxShadow: state.isFocused ? '0 0 0 2px rgba(16, 185, 129, 0.2)' : 'none',
+                    '&:hover': {
+                      borderColor: '#10b981'
+                    },
+                    padding: '2px'
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden',
+                    zIndex: 9999
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    backgroundColor: state.isFocused ? '#ecfdf5' : 'white',
+                    color: state.isFocused ? '#047857' : '#334155',
+                    cursor: 'pointer',
+                    '&:active': {
+                      backgroundColor: '#d1fae5'
+                    }
+                  })
+                }}
+              />
+            </div>
+            
+            <Select 
+              label="Departman" 
+              value={formData.departmentId || ''} 
+              onChange={e => {
+                setFormData({ ...formData, departmentId: e.target.value || null, assignedUserId: null });
+              }}
+            >
+              <option value="">-- Departman Yok --</option>
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </Select>
+            
+            {formData.departmentId && (
+              <Select 
+                label="Zimmetli Personel" 
+                value={formData.assignedUserId || ''} 
+                onChange={e => setFormData({ ...formData, assignedUserId: e.target.value || null })}
+              >
+                <option value="">-- Zimmet Yok (Ortak Kullanım) --</option>
+                {users.filter(u => u.departmentId === formData.departmentId).map(u => (
+                  <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                ))}
+              </Select>
+            )}
+            
+            <Select 
+              label="Durum" 
+              value={formData.status} 
+              onChange={e => setFormData({ ...formData, status: Number(e.target.value) as DeviceStatus })}
+            >
+              <option value={DeviceStatus.Active}>Aktif</option>
+              <option value={DeviceStatus.Faulty}>Arızalı</option>
+              <option value={DeviceStatus.Maintenance}>Bakımda</option>
+              <option value={DeviceStatus.Storage}>Depoda</option>
+            </Select>
+          </ModalContent>
+          <ModalFooter>
+             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>İptal</Button>
+             <Button type="submit" variant="primary">Kaydet</Button>
+          </ModalFooter>
+        </form>
+      </Modal>
 
       {isDrawerOpen && selectedDevice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsDrawerOpen(false)}>

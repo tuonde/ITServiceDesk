@@ -5,7 +5,7 @@ import type { AttachmentResponseDto, AttachmentCreateDto } from '../types/attach
 export const attachmentService = {
     getByTicketId: async (ticketId: string): Promise<AttachmentResponseDto[]> => {
         const response = await api.get<ApiResponse<AttachmentResponseDto[]>>(`/api/Attachments/ticket/${ticketId}`);
-        return response.data.data;
+        return response.data.data!;
     },
 
     upload: async (data: AttachmentCreateDto): Promise<AttachmentResponseDto> => {
@@ -19,7 +19,7 @@ export const attachmentService = {
                 'Content-Type': 'multipart/form-data'
             }
         });
-        return response.data.data;
+        return response.data.data!;
     },
 
     delete: async (id: string): Promise<void> => {

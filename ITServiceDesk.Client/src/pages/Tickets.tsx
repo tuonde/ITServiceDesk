@@ -24,6 +24,18 @@ import { tr } from 'date-fns/locale/tr';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card } from '../components/ui/Card';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../components/ui/Table';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Badge } from '../components/ui/Badge';
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { Textarea } from '../components/ui/Textarea';
+
 registerLocale('tr', tr);
 
 interface TicketsProps {
@@ -34,7 +46,6 @@ interface TicketsProps {
 const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
   const isAdmin = authService.isAdmin();
   const isTechnician = authService.isTechnician();
-  const isMobileResponsive = !isAdmin;
   
   const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
   const [devices, setDevices] = useState<DeviceDto[]>([]);
@@ -80,9 +91,10 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
     if (priorityQ1 !== null && priorityQ2 !== null) {
       const score = priorityQ1 + priorityQ2;
       let calculatedPriority = Priority.Low;
-      if (score === 6) calculatedPriority = Priority.Critical;
-      else if (score === 5) calculatedPriority = Priority.High;
-      else if (score === 4 || score === 3) calculatedPriority = Priority.Medium;
+      
+      if (score >= 5) calculatedPriority = Priority.Critical;
+      else if (score === 4) calculatedPriority = Priority.High;
+      else if (score === 3) calculatedPriority = Priority.Medium;
       else calculatedPriority = Priority.Low;
       
       setNewTicket(prev => ({ ...prev, priority: calculatedPriority }));
@@ -197,6 +209,9 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
         // Clean up the state so it doesn't re-trigger on other re-renders
         navigate(location.pathname, { replace: true, state: {} });
       }
+    } else if (location.state?.openNewTicket) {
+      setIsModalOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
     }
   }, [tickets, location.state, location.pathname, navigate, selectedTicket?.id]);
 
@@ -540,21 +555,21 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
 
   const getStatusBadge = (status: TicketStatus) => {
     switch (status) {
-      case TicketStatus.Open: return <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Açık</span>;
-      case TicketStatus.InProgress: return <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">İşlemde</span>;
-      case TicketStatus.WaitingForUser: return <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Kullanıcı Bekleniyor</span>;
-      case TicketStatus.Resolved: return <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">Çözüldü</span>;
-      case TicketStatus.Closed: return <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">Kapalı</span>;
+      case TicketStatus.Open: return <Badge variant="emerald">Açık</Badge>;
+      case TicketStatus.InProgress: return <Badge variant="blue">İşlemde</Badge>;
+      case TicketStatus.WaitingForUser: return <Badge variant="amber">Kullanıcı Bekleniyor</Badge>;
+      case TicketStatus.Resolved: return <Badge variant="purple">Çözüldü</Badge>;
+      case TicketStatus.Closed: return <Badge variant="slate">Kapalı</Badge>;
       default: return null;
     }
   };
 
   const getPriorityBadge = (priority: Priority) => {
     switch (priority) {
-      case Priority.Low: return <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">Düşük</span>;
-      case Priority.Medium: return <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">Orta</span>;
-      case Priority.High: return <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Yüksek</span>;
-      case Priority.Critical: return <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">Kritik</span>;
+      case Priority.Low: return <Badge variant="slate">Düşük</Badge>;
+      case Priority.Medium: return <Badge variant="amber">Orta</Badge>;
+      case Priority.High: return <Badge variant="warning">Yüksek</Badge>;
+      case Priority.Critical: return <Badge variant="rose">Kritik</Badge>;
       default: return null;
     }
   };
@@ -644,37 +659,46 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
 
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-6">
 
-      <div className={`shrink-0 ${isMobileResponsive ? 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2' : 'flex items-center justify-between'}`}>
+      <div className="shrink-0">
         {(mode === 'my-tasks' || mode === 'my-requests') && onModeChange ? (
-          <div className="flex items-center gap-6 border-b border-slate-200 w-full sm:w-auto mt-2 sm:mt-0">
-            <button
-              onClick={() => onModeChange('my-tasks')}
-              className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-tasks' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
-            >
-              Görevlerim
-            </button>
-            <button
-              onClick={() => onModeChange('my-requests')}
-              className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-requests' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
-            >
-              Taleplerim
-            </button>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-6 border-b border-slate-200 w-full sm:w-auto">
+              <button
+                onClick={() => onModeChange('my-tasks')}
+                className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-tasks' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+              >
+                Görevlerim
+              </button>
+              <button
+                onClick={() => onModeChange('my-requests')}
+                className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-requests' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+              >
+                Taleplerim
+              </button>
+            </div>
+            {!isAdmin && (
+              <Button 
+                onClick={() => setIsModalOpen(true)}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                Yeni Talep Aç
+              </Button>
+            )}
           </div>
         ) : (
-          <h2 className="text-2xl font-bold text-slate-800 mt-2 sm:mt-0">
-             {isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim'}
-          </h2>
-        )}
-        {!isAdmin && (
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
-            Yeni Talep Aç
-          </button>
+          <PageHeader 
+            title={isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim'}
+            description="Talepleri filtreleyin, yönetin ve durumlarını takip edin."
+            action={!isAdmin ? { 
+              label: "Yeni Talep Aç", 
+              onClick: () => setIsModalOpen(true), 
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+            } : undefined}
+          />
         )}
       </div>
 
@@ -684,7 +708,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
 
       {/* Bulk Action Panel */}
       {selectedTicketIds.length > 0 && (
-        <div className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl flex flex-wrap items-center justify-between shadow-sm animate-fade-in-down gap-4 shrink-0">
+        <Card className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl flex flex-wrap items-center justify-between shrink-0 gap-4 animate-fade-in-down">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg">
                 {selectedTicketIds.length}
@@ -694,34 +718,36 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                 <p className="text-xs text-indigo-700">Toplu işlem modundasınız</p>
              </div>
           </div>
-          <div className="flex gap-3">
-            <button 
+          <div className="flex flex-wrap gap-3">
+            <Button 
               onClick={() => handleBulkAction('resolve')} 
               disabled={isProcessingBulk} 
-              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-md shadow-purple-500/20 transition-all text-sm flex items-center gap-2"
+              variant="primary"
+              className="bg-purple-600 hover:bg-purple-700 border-none shadow-md shadow-purple-500/20"
             >
               {isProcessingBulk ? 'İşleniyor...' : (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg> Tümünü Çözüldü İşaretle</>
+                <><svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg> Tümünü Çözüldü İşaretle</>
               )}
-            </button>
-            <button 
+            </Button>
+            <Button 
               onClick={() => handleBulkAction('delete')} 
               disabled={isProcessingBulk} 
-              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md shadow-rose-500/20 transition-all text-sm flex items-center gap-2"
+              variant="danger"
+              className="shadow-md shadow-rose-500/20"
             >
               {isProcessingBulk ? 'İşleniyor...' : (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Tümünü İptal Et</>
+                <><svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Tümünü İptal Et</>
               )}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Table Container */}
-      <div className="flex-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col min-h-0">
+      <Card className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
         
         {/* Filters */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4 shrink-0">
+        <div className="p-4 border-b border-slate-100 flex flex-col gap-4 shrink-0 bg-white">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex bg-slate-100/80 p-1 rounded-xl overflow-x-auto w-full xl:w-auto custom-scrollbar border border-slate-200/50">
               <button 
@@ -758,20 +784,20 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
             
             {isAdmin && (
               <div className="flex items-center gap-3">
-                 <button onClick={exportToPDF} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                 <Button onClick={exportToPDF} variant="danger" className="text-sm px-4 py-2 shadow-md">
+                   <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                    PDF
-                 </button>
-                 <button onClick={exportToExcel} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                 </Button>
+                 <Button onClick={exportToExcel} variant="primary" className="text-sm px-4 py-2 shadow-md">
+                   <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                    Excel
-                 </button>
+                 </Button>
               </div>
             )}
           </div>
           
           {/* Date Filters */}
-          <div className={`flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 ${isMobileResponsive ? 'w-full' : ''}`}>
+          <div className="flex flex-wrap items-center gap-4 rounded-xl">
              <div className="flex flex-wrap gap-2">
                 <button onClick={() => setDateRange([null, null])} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${!startDate ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Tüm Zamanlar</button>
                 <button onClick={() => { const today = new Date(); setDateRange([today, today]); }} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${startDate && startDate.toDateString() === new Date().toDateString() && endDate?.toDateString() === new Date().toDateString() ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Bugün</button>
@@ -786,10 +812,10 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                   setDateRange([lastMonth, today]);
                 }} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${startDate && startDate.toDateString() === new Date(new Date().setMonth(new Date().getMonth() - 1)).toDateString() ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>Son 30 Gün</button>
              </div>
-             <div className="h-8 w-px bg-slate-200 mx-2"></div>
-             <div className="flex items-center gap-3">
-                <label className="text-sm font-semibold text-slate-600">Tarih Aralığı:</label>
-                <div className="relative z-50">
+             <div className="hidden sm:block h-8 w-px bg-slate-200 mx-2"></div>
+             <div className="flex items-center gap-3 w-full sm:w-auto">
+                <label className="text-sm font-semibold text-slate-600 shrink-0">Tarih Aralığı:</label>
+                <div className="relative z-50 flex-1 sm:flex-none">
                   <DatePicker
                     selectsRange={true}
                     startDate={startDate}
@@ -810,59 +836,56 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
         </div>
 
         <div className="flex-1 overflow-auto w-full">
-          <table className={`text-left border-collapse ${isMobileResponsive ? 'min-w-[800px] w-full' : 'w-full'}`}>
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
-                <th className="px-3 py-4 w-12 text-center border-r border-slate-100">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12 text-center">
                   <input 
                     type="checkbox" 
                     checked={selectedTicketIds.length === sortedTickets.length && sortedTickets.length > 0} 
                     onChange={handleSelectAll} 
                     className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
                   />
-                </th>
-                <th className="px-3 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Konu</th>
-                <th onClick={() => handleSort('status')} className="px-3 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 transition-colors">
+                </TableHead>
+                <TableHead>Konu</TableHead>
+                <TableHead onClick={() => handleSort('status')} className="cursor-pointer group hover:bg-slate-100/50 transition-colors">
                   <div className="flex items-center gap-2">Durum {getSortIcon('status')}</div>
-                </th>
-                <th className="px-3 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Departman
-                </th>
-                <th onClick={() => handleSort('priority')} className="px-3 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 transition-colors">
+                </TableHead>
+                <TableHead>Departman</TableHead>
+                <TableHead onClick={() => handleSort('priority')} className="cursor-pointer group hover:bg-slate-100/50 transition-colors">
                   <div className="flex items-center gap-2">Öncelik {getSortIcon('priority')}</div>
-                </th>
-                <th onClick={() => handleSort('createdAt')} className="px-3 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider cursor-pointer group hover:bg-slate-100 transition-colors whitespace-nowrap">
+                </TableHead>
+                <TableHead onClick={() => handleSort('createdAt')} className="cursor-pointer group hover:bg-slate-100/50 transition-colors whitespace-nowrap">
                   <div className="flex items-center gap-2">Tarih {getSortIcon('createdAt')}</div>
-                </th>
-                <th className="px-3 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+                </TableHead>
+                <TableHead className="text-right whitespace-nowrap">İşlemler</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-slate-500">Yükleniyor...</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={7} className="p-0">
+                    <TableSkeleton rows={5} />
+                  </TableCell>
+                </TableRow>
               ) : sortedTickets.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-12 text-center text-slate-500">
-                    <div className="flex flex-col items-center">
-                       <svg className="w-16 h-16 text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                       <p className="text-lg font-medium text-slate-600">Henüz hiç talep yok.</p>
-                    </div>
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={7} className="h-64">
+                    <EmptyState title="Talep Bulunamadı" description="Arama kriterlerinize uygun destek talebi bulunmuyor." />
+                  </TableCell>
+                </TableRow>
               ) : (
                 paginatedTickets.map((ticket) => (
-                  <tr key={ticket.id} onClick={() => { setSelectedTicket(ticket); setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 })); loadComments(ticket.id); loadAttachments(ticket.id); }} className={`transition-colors cursor-pointer group ${selectedTicketIds.includes(ticket.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
-                    <td className="px-3 py-4 text-center border-r border-slate-50" onClick={(e) => e.stopPropagation()}>
+                  <TableRow key={ticket.id} onClick={() => { setSelectedTicket(ticket); setUnreadMessages(prev => ({ ...prev, [ticket.id]: 0 })); loadComments(ticket.id); loadAttachments(ticket.id); }} className={`cursor-pointer group ${selectedTicketIds.includes(ticket.id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50/50 transition-colors'}`}>
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox" 
                         checked={selectedTicketIds.includes(ticket.id)} 
                         onChange={() => handleSelectTicket(ticket.id)} 
                         className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
                       />
-                    </td>
-                    <td className="px-3 py-4 border-r border-slate-50">
+                    </TableCell>
+                    <TableCell>
                       <div className="font-semibold text-slate-800 flex items-center gap-2">
                         {ticket.title}
                         {unreadMessages[ticket.id] > 0 && (
@@ -872,18 +895,18 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                         )}
                       </div>
                       <div className="text-sm text-slate-500 truncate max-w-[200px] md:max-w-[300px] xl:max-w-[400px]">{ticket.description}</div>
-                    </td>
-                    <td className="px-3 py-4">{getStatusBadge(ticket.status)}</td>
-                    <td className="px-3 py-4">
+                    </TableCell>
+                    <TableCell>{getStatusBadge(ticket.status)}</TableCell>
+                    <TableCell>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
                         {ticket.departmentName || 'Belirtilmedi'}
                       </span>
-                    </td>
-                    <td className="px-3 py-4">{getPriorityBadge(ticket.priority)}</td>
-                    <td className="px-3 py-4 text-sm text-slate-500 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
+                    <TableCell className="text-sm text-slate-500 whitespace-nowrap">
                       {new Date(ticket.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-3 py-4 text-right flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="text-right flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       {isAdmin && Number(ticket.status) !== TicketStatus.Resolved && Number(ticket.status) !== TicketStatus.Closed && (
                         <button 
                           onClick={(e) => {
@@ -928,12 +951,12 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         
         {/* Pagination Controls */}
@@ -971,45 +994,43 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Create Modal */}
-      {isModalOpen && !isAdmin && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-end z-[9999]">
-          <div className="bg-white shadow-2xl w-full max-w-md h-full flex flex-col overflow-hidden animate-slide-in-right">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-              <h3 className="text-xl font-bold text-slate-800">Yeni Talep Oluştur</h3>
-              <button type="button" onClick={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }} className="text-slate-400 hover:text-rose-500 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <form onSubmit={handleCreateTicket} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5 flex flex-col">
-              <div className="flex-1 space-y-5">
-                <div>
+      {createPortal(
+        <Modal 
+          isOpen={isModalOpen && !isAdmin} 
+          onClose={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }}
+          className="max-w-xl"
+        >
+          <ModalHeader 
+            title="Yeni Talep Oluştur" 
+            onClose={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }} 
+          />
+          <form onSubmit={handleCreateTicket} className="flex flex-col h-full overflow-hidden max-h-[80vh]">
+            <ModalContent className="space-y-5">
+              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Konu / Başlık</label>
-                <input 
+                <Input 
                   type="text" 
                   value={newTicket.title}
                   onChange={e => setNewTicket({...newTicket, title: e.target.value})}
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none"
                   placeholder="Örn: E-Posta hesabıma giremiyorum"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Açıklama</label>
-                <textarea 
-                  value={newTicket.description}
-                  onChange={e => setNewTicket({...newTicket, description: e.target.value})}
-                  required
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none resize-none"
-                  placeholder="Detaylı bilgi veriniz..."
-                />
-              </div>
+              <Textarea 
+                label="Açıklama"
+                value={newTicket.description}
+                onChange={e => setNewTicket({...newTicket, description: e.target.value})}
+                required
+                rows={4}
+                className="resize-none bg-white"
+                placeholder="Detaylı bilgi veriniz..."
+              />
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Öncelik Değerlendirmesi</label>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-4 space-y-4">
                   <div>
                     <p className="text-sm font-medium text-slate-800 mb-2">Soru 1: Bu durum kimi / neyi etkiliyor?</p>
                     <div className="space-y-2">
@@ -1032,7 +1053,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                         <input type="radio" name="q2" checked={priorityQ2 === 1} onChange={() => setPriorityQ2(1)} className="text-emerald-600 focus:ring-emerald-500" />
-                        İşimi engellenmiyor, sadece bilgi / destek talebi
+                        İşimi engellemiyor, sadece bilgi / destek talebi
                       </label>
                       <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                         <input type="radio" name="q2" checked={priorityQ2 === 2} onChange={() => setPriorityQ2(2)} className="text-emerald-600 focus:ring-emerald-500" />
@@ -1048,29 +1069,27 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori (Opsiyonel)</label>
-                <select 
+                <Select 
                   value={newTicket.categoryId || ''}
                   onChange={e => setNewTicket({...newTicket, categoryId: e.target.value || null})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none"
                 >
                   <option value="">Kategori Seçiniz...</option>
                   {ticketCategories.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">İlgili Cihaz (Opsiyonel)</label>
-                <select 
+                <Select 
                   value={newTicket.deviceId || ''}
                   onChange={e => setNewTicket({...newTicket, deviceId: e.target.value || null})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all outline-none"
                 >
                   <option value="">Cihaz Seçiniz...</option>
                   {devices.map(d => (
                     <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                   ))}
-                </select>
+                </Select>
               </div>
               
               <div>
@@ -1095,7 +1114,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                     + Dosya Seç
                   </button>
                   {newTicketFiles.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap mt-2">
                       {newTicketFiles.map((file, i) => (
                         <div key={i} className="px-3 py-1 bg-sky-50 text-sky-700 rounded-full text-xs font-medium border border-sky-100 flex items-center gap-2">
                           {file.name}
@@ -1107,451 +1126,450 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                     </div>
                   )}
                 </div>
-                </div>
               </div>
-
-              <div className="pt-4 border-t border-slate-100 flex gap-3 shrink-0">
-                <button type="button" onClick={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
-                  İptal
-                </button>
-                <button type="submit" disabled={isCreating || priorityQ1 === null || priorityQ2 === null} className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  {isCreating ? 'Oluşturuluyor...' : 'Bileti Gönder'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </ModalContent>
+            <ModalFooter>
+              <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); setPriorityQ1(null); setPriorityQ2(null); }}>
+                İptal
+              </Button>
+              <Button type="submit" variant="primary" disabled={isCreating || priorityQ1 === null || priorityQ2 === null}>
+                {isCreating ? 'Oluşturuluyor...' : 'Bileti Gönder'}
+              </Button>
+            </ModalFooter>
+          </form>
+        </Modal>
       , document.body)}
 
       {/* Ticket Details Modal */}
-      {selectedTicket && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={() => setSelectedTicket(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-100 flex flex-col overflow-hidden max-h-[90vh]" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-              <h3 className="text-xl font-bold text-slate-800">{selectedTicket.title}</h3>
-              <button onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-rose-500 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6 bg-slate-50/80 p-5 rounded-2xl border border-slate-100">
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Durum
-                  </span>
-                  <div>{getStatusBadge(selectedTicket.status)}</div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    Öncelik
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {getPriorityBadge(selectedTicket.priority)}
-                    {selectedTicket.isEscalated && (
-                      <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 shadow-sm">Gecikmiş</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Oluşturulma
-                  </span>
-                  <span className="text-sm font-semibold text-slate-700">
-                    {new Date(selectedTicket.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    Talep Eden
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shadow-sm">
-                      {(selectedTicket.requesterName || 'B').charAt(0)}
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.requesterName}>{selectedTicket.requesterName || 'Bilinmiyor'}</span>
-                  </div>
-                </div>
-                {selectedTicket.assigneeName && (
+      {createPortal(
+        <Modal 
+          isOpen={!!selectedTicket} 
+          onClose={() => setSelectedTicket(null)}
+          className="max-w-3xl"
+        >
+          <ModalHeader 
+            title={selectedTicket?.title || ''} 
+            onClose={() => setSelectedTicket(null)} 
+          />
+          {selectedTicket && (
+            <div className="flex flex-col h-full overflow-hidden max-h-[85vh]">
+              <ModalContent className="flex-1 p-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-6 bg-slate-50/80 p-5 rounded-2xl border border-slate-100">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                      Atanan Kişi
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      Durum
+                    </span>
+                    <div>{getStatusBadge(selectedTicket.status)}</div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                      Öncelik
                     </span>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shadow-sm">
-                        {selectedTicket.assigneeName.charAt(0)}
+                      {getPriorityBadge(selectedTicket.priority)}
+                      {selectedTicket.isEscalated && (
+                        <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 text-[10px] font-bold border border-rose-200 shadow-sm">Gecikmiş</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      Oluşturulma
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {new Date(selectedTicket.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                      Talep Eden
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shadow-sm">
+                        {(selectedTicket.requesterName || 'B').charAt(0)}
                       </div>
-                      <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.assigneeName}>{selectedTicket.assigneeName}</span>
+                      <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.requesterName}>{selectedTicket.requesterName || 'Bilinmiyor'}</span>
+                    </div>
+                  </div>
+                  {selectedTicket.assigneeName && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        Atanan Kişi
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shadow-sm">
+                          {selectedTicket.assigneeName.charAt(0)}
+                        </div>
+                        <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.assigneeName}>{selectedTicket.assigneeName}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                      Departman
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.departmentName}>{selectedTicket.departmentName || 'Belirtilmedi'}</span>
+                  </div>
+                  {(Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                        Çözülme
+                      </span>
+                      <span className="text-sm font-semibold text-slate-700">
+                        {selectedTicket.resolvedAt 
+                          ? new Date(selectedTicket.resolvedAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          : 'Belirtilmedi'}
+                      </span>
+                    </div>
+                  )}
+                  {selectedTicket.deviceName && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        İlgili Cihaz
+                      </span>
+                      <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.deviceName}>{selectedTicket.deviceName}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <h4 className="text-sm font-semibold text-slate-700 mb-2">Açıklama:</h4>
+                <p className="text-slate-600 bg-slate-50/50 border border-slate-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
+                  {selectedTicket.description}
+                </p>
+                
+                {selectedTicket.resolutionReport && (
+                  <div className="mt-6">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-2">Durum Notu / Rapor:</h4>
+                    <p className="text-slate-600 bg-blue-50/50 border border-blue-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
+                      {selectedTicket.resolutionReport}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedTicket.repairCost !== null && selectedTicket.repairCost > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-2">Onarım / Parça Maliyeti:</h4>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-100">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      {selectedTicket.repairCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                     </div>
                   </div>
                 )}
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                    Departman
-                  </span>
-                  <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.departmentName}>{selectedTicket.departmentName || 'Belirtilmedi'}</span>
-                </div>
-                {(Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) && (
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
-                      Çözülme
-                    </span>
-                    <span className="text-sm font-semibold text-slate-700">
-                      {selectedTicket.resolvedAt 
-                        ? new Date(selectedTicket.resolvedAt).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : 'Belirtilmedi'}
-                    </span>
-                  </div>
-                )}
-                {selectedTicket.deviceName && (
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                      İlgili Cihaz
-                    </span>
-                    <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.deviceName}>{selectedTicket.deviceName}</span>
-                  </div>
-                )}
-              </div>
-              
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Açıklama:</h4>
-              <p className="text-slate-600 bg-slate-50/50 border border-slate-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
-                {selectedTicket.description}
-              </p>
-              
-              {selectedTicket.resolutionReport && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Durum Notu / Rapor:</h4>
-                  <p className="text-slate-600 bg-blue-50/50 border border-blue-100 p-4 rounded-xl whitespace-pre-wrap break-words leading-relaxed">
-                    {selectedTicket.resolutionReport}
-                  </p>
-                </div>
-              )}
-              
-              {selectedTicket.repairCost !== null && selectedTicket.repairCost > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Onarım / Parça Maliyeti:</h4>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl border border-emerald-100">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {selectedTicket.repairCost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                  </div>
-                </div>
-              )}
 
-              {/* Attachments Section */}
-              <div className="mt-6 border-t border-slate-100 pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                    Ek Dosyalar ({attachments.length})
-                  </h4>
-                  <div>
-                    {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
-                      <React.Fragment>
-                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-                        <button 
-                          onClick={() => fileInputRef.current?.click()} 
-                          disabled={isUploading}
-                          className="text-xs font-semibold px-3 py-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
-                        >
-                          {isUploading ? 'Yükleniyor...' : '+ Dosya Ekle'}
-                        </button>
-                      </React.Fragment>
-                    )}
+                {/* Attachments Section */}
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                      Ek Dosyalar ({attachments.length})
+                    </h4>
+                    <div>
+                      {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
+                        <React.Fragment>
+                          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                          <button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            disabled={isUploading}
+                            className="text-xs font-semibold px-3 py-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {isUploading ? 'Yükleniyor...' : '+ Dosya Ekle'}
+                          </button>
+                        </React.Fragment>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {attachments.map(att => (
-                      <div key={att.id} className="flex flex-col border border-slate-200 rounded-xl overflow-hidden hover:border-sky-300 transition-colors bg-white w-48">
-                        <a 
-                          href={att.filePath} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center gap-3 p-3 group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                          </div>
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <span className="text-sm font-medium text-slate-700 truncate" title={att.fileName}>{att.fileName}</span>
-                            <span className="text-xs text-slate-400">{(att.fileSize / 1024).toFixed(1)} KB</span>
-                          </div>
-                        </a>
-                        <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                            {att.uploaderName || 'Bilinmiyor'} 
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-
-              {/* Comments Section */}
-              <div className="mt-6 border-t border-slate-100 pt-6">
-                <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                  İletişim & Yorumlar ({comments.length})
-                </h4>
-                
-                <div className="space-y-4 mb-4 pr-2">
-                  {comments.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-xl border border-slate-100">Henüz yorum yapılmamış.</p>
-                  ) : (
-                    comments.map(comment => {
-                      const isMe = comment.userId === authService.getUserId();
-                      return (
-                        <div key={comment.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-700 rounded-tl-none border border-slate-200'}`}>
-                            <div className="flex justify-between items-end gap-4 mb-1">
-                              <span className={`text-xs font-bold ${isMe ? 'text-indigo-200' : 'text-slate-500'}`}>{isMe ? 'Ben' : comment.userName}</span>
-                              <span className={`text-[10px] ${isMe ? 'text-indigo-300' : 'text-slate-400'}`}>
-                                {new Date(comment.createdAt).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
-                              </span>
+                  {attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {attachments.map(att => (
+                        <div key={att.id} className="flex flex-col border border-slate-200 rounded-xl overflow-hidden hover:border-sky-300 transition-colors bg-white w-48">
+                          <a 
+                            href={att.filePath} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="flex items-center gap-3 p-3 group"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                             </div>
-                            {comment.isInternal && (
-                                <span className="px-2 py-0.5 ml-2 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md uppercase tracking-wider">Gizli Not</span>
-                            )}
-                            <p className="text-sm whitespace-pre-wrap break-words mt-1">{comment.content}</p>
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-sm font-medium text-slate-700 truncate" title={att.fileName}>{att.fileName}</span>
+                              <span className="text-xs text-slate-400">{(att.fileSize / 1024).toFixed(1)} KB</span>
+                            </div>
+                          </a>
+                          <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                              {att.uploaderName || 'Bilinmiyor'} 
+                            </span>
                           </div>
                         </div>
-                      );
-                    })
+                      ))}
+                    </div>
                   )}
                 </div>
 
-                {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed ? (
-                  <form onSubmit={handleSendComment} className="flex flex-col gap-2">
-                    {(isAdmin || isTechnician) && (
-                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 self-end">
-                        <input
-                          type="checkbox"
-                          checked={isInternalComment}
-                          onChange={(e) => setIsInternalComment(e.target.checked)}
-                          className="w-4 h-4 text-rose-600 bg-slate-100 border-slate-300 rounded focus:ring-rose-500 focus:ring-2"
-                        />
-                        Gizli Not (Sadece Admin/Teknisyen görebilir)
-                      </label>
-                    )}
-                    <div className="flex gap-2">
-                      <input
-                      type="text"
-                      value={newCommentContent}
-                      onChange={e => setNewCommentContent(e.target.value)}
-                      placeholder="Bir mesaj yazın..."
-                      className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none text-sm transition-all"
-                      disabled={isSendingComment}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isSendingComment || !newCommentContent.trim()}
-                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-md shadow-indigo-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
-                    >
-                      {isSendingComment ? (
-                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      ) : (
-                        'Gönder'
-                      )}
-                    </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm p-4 rounded-xl text-center">
-                    Bu talep çözüldüğü veya kapatıldığı için yeni mesaja kapalıdır.
-                  </div>
-                )}
-              </div>
-            </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 shrink-0">
-              {(isAdmin || (isTechnician && selectedTicket.assigneeId === authService.getUserId())) && Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
-                <button 
-                  onClick={() => {
-                      if (Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) {
-                         alert("Bu talep zaten çözülmüş veya kapatılmış.");
-                         return;
-                      }
-                      setUpdateStatusData({ status: TicketStatus.InProgress, report: '', assigneeId: selectedTicket.assigneeId || null, repairCost: selectedTicket.repairCost || null });
-                      setIsStatusModalOpen(true);
-                  }} 
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/30"
-                >
-                  Durum Güncelle
-                </button>
-              )}
-              {!isAdmin && selectedTicket.status === TicketStatus.Open && (
-                <button 
-                  onClick={() => {
-                      setEditTicketData({ id: selectedTicket.id, title: selectedTicket.title, description: selectedTicket.description, priority: selectedTicket.priority, deviceId: selectedTicket.deviceId || null, categoryId: selectedTicket.categoryId || null });
-                      setIsEditModalOpen(true);
-                  }} 
-                  className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-amber-500/30"
-                >
-                  Düzenle
-                </button>
-              )}
-              <button onClick={() => setSelectedTicket(null)} className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold rounded-xl shadow-sm transition-colors">
-                Kapat
-              </button>
+                {/* Comments Section */}
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                    İletişim & Yorumlar ({comments.length})
+                  </h4>
+                  
+                  <div className="space-y-4 mb-4 pr-2">
+                    {comments.length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-xl border border-slate-100">Henüz yorum yapılmamış.</p>
+                    ) : (
+                      comments.map(comment => {
+                        const isMe = comment.userId === authService.getUserId();
+                        return (
+                          <div key={comment.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                            <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-700 rounded-tl-none border border-slate-200'}`}>
+                              <div className="flex justify-between items-end gap-4 mb-1">
+                                <span className={`text-xs font-bold ${isMe ? 'text-indigo-200' : 'text-slate-500'}`}>{isMe ? 'Ben' : comment.userName}</span>
+                                <span className={`text-[10px] ${isMe ? 'text-indigo-300' : 'text-slate-400'}`}>
+                                  {new Date(comment.createdAt).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                                </span>
+                              </div>
+                              {comment.isInternal && (
+                                  <span className="px-2 py-0.5 ml-2 bg-rose-100 text-rose-700 text-[10px] font-bold rounded-md uppercase tracking-wider">Gizli Not</span>
+                              )}
+                              <p className="text-sm whitespace-pre-wrap break-words mt-1">{comment.content}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed ? (
+                    <form onSubmit={handleSendComment} className="flex flex-col gap-2">
+                      {(isAdmin || isTechnician) && (
+                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 self-end">
+                          <input
+                            type="checkbox"
+                            checked={isInternalComment}
+                            onChange={(e) => setIsInternalComment(e.target.checked)}
+                            className="w-4 h-4 text-rose-600 bg-slate-100 border-slate-300 rounded focus:ring-rose-500 focus:ring-2"
+                          />
+                          Gizli Not (Sadece Admin/Teknisyen görebilir)
+                        </label>
+                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          value={newCommentContent}
+                          onChange={e => setNewCommentContent(e.target.value)}
+                          placeholder="Bir mesaj yazın..."
+                          disabled={isSendingComment}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="submit"
+                          disabled={isSendingComment || !newCommentContent.trim()}
+                          variant="primary"
+                          className="min-w-[100px]"
+                        >
+                          {isSendingComment ? (
+                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                          ) : (
+                            'Gönder'
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm p-4 rounded-xl text-center">
+                      Bu talep çözüldüğü veya kapatıldığı için yeni mesaja kapalıdır.
+                    </div>
+                  )}
+                </div>
+              </ModalContent>
+
+              <ModalFooter>
+                {(isAdmin || (isTechnician && selectedTicket.assigneeId === authService.getUserId())) && Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
+                  <Button 
+                    onClick={() => {
+                        if (Number(selectedTicket.status) === TicketStatus.Resolved || Number(selectedTicket.status) === TicketStatus.Closed) {
+                           alert("Bu talep zaten çözülmüş veya kapatılmış.");
+                           return;
+                        }
+                        setUpdateStatusData({ status: TicketStatus.InProgress, report: '', assigneeId: selectedTicket.assigneeId || null, repairCost: selectedTicket.repairCost || null });
+                        setIsStatusModalOpen(true);
+                    }} 
+                    variant="primary"
+                    className="bg-blue-600 hover:bg-blue-500"
+                  >
+                    Durum Güncelle
+                  </Button>
+                )}
+                {!isAdmin && selectedTicket.status === TicketStatus.Open && (
+                  <Button 
+                    onClick={() => {
+                        setEditTicketData({ id: selectedTicket.id, title: selectedTicket.title, description: selectedTicket.description, priority: selectedTicket.priority, deviceId: selectedTicket.deviceId || null, categoryId: selectedTicket.categoryId || null });
+                        setIsEditModalOpen(true);
+                    }} 
+                    variant="secondary"
+                  >
+                    Düzenle
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setSelectedTicket(null)}>
+                  Kapat
+                </Button>
+              </ModalFooter>
             </div>
-          </div>
-        </div>
+          )}
+        </Modal>
       , document.body)}
 
       {/* Status Update Modal */}
-      {isStatusModalOpen && selectedTicket && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-800">Durum Güncelle</h3>
-              <button onClick={() => setIsStatusModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <form onSubmit={handleUpdateStatusSubmit} className="p-6 space-y-5">
+      {createPortal(
+        <Modal 
+          isOpen={isStatusModalOpen && !!selectedTicket} 
+          onClose={() => setIsStatusModalOpen(false)}
+          className="max-w-lg"
+        >
+          <ModalHeader 
+            title="Durum Güncelle" 
+            onClose={() => setIsStatusModalOpen(false)} 
+          />
+          <form onSubmit={handleUpdateStatusSubmit} className="flex flex-col h-full overflow-hidden max-h-[80vh]">
+            <ModalContent className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Yeni Durum</label>
-                <select 
+                <Select 
                   value={updateStatusData.status}
                   onChange={e => setUpdateStatusData({...updateStatusData, status: Number(e.target.value)})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none"
                 >
                   <option value={TicketStatus.InProgress}>Devam Ediyor (İşlemde)</option>
                   <option value={TicketStatus.WaitingForUser}>Kullanıcı Bekleniyor</option>
                   <option value={TicketStatus.Resolved}>Çözüldü</option>
                   <option value={TicketStatus.Closed}>Kapalı (İptal)</option>
-                </select>
+                </Select>
               </div>
               {isAdmin && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Atanan Kişi (Opsiyonel)</label>
-                  <select 
+                  <Select 
                     value={updateStatusData.assigneeId || ''}
                     onChange={e => setUpdateStatusData({...updateStatusData, assigneeId: e.target.value || null})}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none"
                   >
                     <option value="">Atama Yapılmadı</option>
                     {assignees.map(u => (
                       <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.roles.join(', ')})</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               )}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Rapor / Not (Opsiyonel)</label>
-                <textarea 
-                  value={updateStatusData.report}
-                  onChange={e => setUpdateStatusData({...updateStatusData, report: e.target.value})}
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none resize-none"
-                />
-              </div>
+              <Textarea 
+                label="Rapor / Not (Opsiyonel)"
+                value={updateStatusData.report}
+                onChange={e => setUpdateStatusData({...updateStatusData, report: e.target.value})}
+                rows={4}
+                className="resize-none bg-white focus:ring-blue-500/50 focus:border-blue-500"
+              />
               {updateStatusData.status === TicketStatus.Resolved && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Onarım / Parça Maliyeti (Opsiyonel - ₺)</label>
-                  <input 
+                  <Input 
                     type="number" 
                     step="0.01"
                     min="0"
                     value={updateStatusData.repairCost || ''}
                     onChange={e => setUpdateStatusData({...updateStatusData, repairCost: e.target.value ? Number(e.target.value) : null})}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none"
                     placeholder="Örn: 1500.50"
                   />
                 </div>
               )}
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsStatusModalOpen(false)} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
-                  İptal
-                </button>
-                <button type="submit" disabled={isUpdatingStatus} className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all">
-                  {isUpdatingStatus ? 'Kaydediliyor...' : 'Kaydet'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </ModalContent>
+            <ModalFooter>
+              <Button type="button" variant="ghost" onClick={() => setIsStatusModalOpen(false)}>
+                İptal
+              </Button>
+              <Button type="submit" variant="primary" disabled={isUpdatingStatus}>
+                {isUpdatingStatus ? 'Kaydediliyor...' : 'Kaydet'}
+              </Button>
+            </ModalFooter>
+          </form>
+        </Modal>
       , document.body)}
 
       {/* Edit Ticket Modal */}
-      {isEditModalOpen && editTicketData && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-800">Talebi Düzenle</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-            <form onSubmit={handleEditTicketSubmit} className="p-6 space-y-5">
+      {createPortal(
+        <Modal 
+          isOpen={isEditModalOpen && !!editTicketData} 
+          onClose={() => setIsEditModalOpen(false)}
+          className="max-w-lg"
+        >
+          <ModalHeader 
+            title="Talebi Düzenle" 
+            onClose={() => setIsEditModalOpen(false)} 
+          />
+          <form onSubmit={handleEditTicketSubmit} className="flex flex-col h-full overflow-hidden max-h-[80vh]">
+            <ModalContent className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Konu / Başlık</label>
-                <input 
+                <Input 
                   type="text" 
-                  value={editTicketData.title}
-                  onChange={e => setEditTicketData({...editTicketData, title: e.target.value})}
+                  value={editTicketData?.title || ''}
+                  onChange={e => setEditTicketData({...editTicketData!, title: e.target.value})}
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Açıklama</label>
                 <textarea 
-                  value={editTicketData.description}
-                  onChange={e => setEditTicketData({...editTicketData, description: e.target.value})}
+                  value={editTicketData?.description || ''}
+                  onChange={e => setEditTicketData({...editTicketData!, description: e.target.value})}
                   required
                   rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none resize-none"
+                  className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none resize-none text-sm text-slate-800"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori (Opsiyonel)</label>
-                <select 
-                  value={editTicketData.categoryId || ''}
-                  onChange={e => setEditTicketData({...editTicketData, categoryId: e.target.value || null})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none"
+                <Select 
+                  value={editTicketData?.categoryId || ''}
+                  onChange={e => setEditTicketData({...editTicketData!, categoryId: e.target.value || null})}
                 >
                   <option value="">Kategori Seçiniz...</option>
                   {ticketCategories.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">İlgili Cihaz (Opsiyonel)</label>
-                <select 
-                  value={editTicketData.deviceId || ''}
-                  onChange={e => setEditTicketData({...editTicketData, deviceId: e.target.value || null})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all outline-none"
+                <Select 
+                  value={editTicketData?.deviceId || ''}
+                  onChange={e => setEditTicketData({...editTicketData!, deviceId: e.target.value || null})}
                 >
                   <option value="">Cihaz Seçiniz...</option>
                   {devices.map(d => (
                     <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                   ))}
-                </select>
+                </Select>
               </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
-                  İptal
-                </button>
-                <button type="submit" disabled={isEditing} className="flex-1 py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/30 transition-all">
-                  {isEditing ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </ModalContent>
+            <ModalFooter>
+              <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>
+                İptal
+              </Button>
+              <Button type="submit" variant="primary" disabled={isEditing}>
+                {isEditing ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+              </Button>
+            </ModalFooter>
+          </form>
+        </Modal>
       , document.body)}
     </div>
   );

@@ -27,6 +27,7 @@ public class KbArticleRepository : EfRepository<KbArticle>, IKbArticleRepository
         var query = _context.KbArticles
             .Include(a => a.Category)
             .Include(a => a.Author)
+            .Include(a => a.Feedbacks)
             .Where(a => !a.IsDeleted)
             .AsQueryable();
 

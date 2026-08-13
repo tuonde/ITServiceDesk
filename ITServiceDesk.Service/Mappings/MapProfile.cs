@@ -61,7 +61,9 @@ public class MapProfile : Profile
         
         CreateMap<KbArticle, KbArticleResponseDto>()
             .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : "Bilinmiyor"))
-            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author != null ? src.Author.FirstName + " " + src.Author.LastName : "Bilinmiyor"));
+            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author != null ? src.Author.FirstName + " " + src.Author.LastName : "Bilinmiyor"))
+            .ForMember(dest => dest.HelpfulCount, opt => opt.MapFrom(src => src.Feedbacks != null ? src.Feedbacks.Count(f => f.IsHelpful && !f.IsDeleted) : 0))
+            .ForMember(dest => dest.NotHelpfulCount, opt => opt.MapFrom(src => src.Feedbacks != null ? src.Feedbacks.Count(f => !f.IsHelpful && !f.IsDeleted) : 0));
         CreateMap<KbArticleCreateDto, KbArticle>();
         CreateMap<KbArticleUpdateDto, KbArticle>();
     }

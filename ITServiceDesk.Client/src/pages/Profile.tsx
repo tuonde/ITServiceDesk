@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { profileService } from '../services/profileService';
 import type { ProfileUpdateData, ChangePasswordData } from '../services/profileService';
 import { authService } from '../services/authService';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
 
 export default function Profile() {
   const isMobileResponsive = !authService.isAdmin();
@@ -124,23 +126,12 @@ export default function Profile() {
           <div className="flex flex-col">
             <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Kişisel Bilgiler</h3>
             <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">E-posta (Sabit)</label>
-                <input disabled value={readOnlyData.email || ''} className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Departman (Sabit)</label>
-                <input disabled value={readOnlyData.departmentName || '-'} className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Ad</label>
-                  <input required value={profileData.firstName} onChange={e => setProfileData({ ...profileData, firstName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Soyad</label>
-                  <input required value={profileData.lastName} onChange={e => setProfileData({ ...profileData, lastName: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
-                </div>
+              <Input label="E-posta (Sabit)" disabled value={readOnlyData.email || ''} />
+              <Input label="Departman (Sabit)" disabled value={readOnlyData.departmentName || '-'} />
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input label="Ad" required value={profileData.firstName} onChange={e => setProfileData({ ...profileData, firstName: e.target.value })} />
+                <Input label="Soyad" required value={profileData.lastName} onChange={e => setProfileData({ ...profileData, lastName: e.target.value })} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Telefon</label>
@@ -159,9 +150,9 @@ export default function Profile() {
                 </div>
               </div>
               <div className="pt-2">
-                <button type="submit" className="w-full px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm font-medium">
+                <Button type="submit" variant="primary" className="w-full">
                   Bilgilerimi Güncelle
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -169,22 +160,13 @@ export default function Profile() {
           <div className="flex flex-col">
             <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Şifre Değiştir</h3>
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Mevcut Şifre</label>
-                <input type="password" required value={passwordData.currentPassword} onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Yeni Şifre</label>
-                <input type="password" required minLength={6} value={passwordData.newPassword} onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Yeni Şifre (Tekrar)</label>
-                <input type="password" required minLength={6} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all" />
-              </div>
+              <Input label="Mevcut Şifre" type="password" required value={passwordData.currentPassword} onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })} />
+              <Input label="Yeni Şifre" type="password" required minLength={6} value={passwordData.newPassword} onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })} />
+              <Input label="Yeni Şifre (Tekrar)" type="password" required minLength={6} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
               <div className="pt-2">
-                <button type="submit" className="w-full px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm font-medium">
+                <Button type="submit" variant="primary" className="w-full bg-blue-600 hover:bg-blue-700 focus:ring-blue-500/50">
                   Şifremi Güncelle
-                </button>
+                </Button>
               </div>
             </form>
           </div>
