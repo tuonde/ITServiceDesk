@@ -106,18 +106,14 @@ export default function Profile() {
 
   return (
     <div className="flex flex-col flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden max-w-5xl mx-auto w-full">
-      <div className={`border-b border-slate-100 flex items-center justify-between bg-slate-50/50 ${isMobileResponsive ? 'p-4 sm:p-6' : 'p-6'}`}>
+      <div className={`border-b border-slate-100 flex flex-col bg-slate-50/50 ${isMobileResponsive ? 'p-4 sm:p-6' : 'p-6'}`}>
         <div>
+          <div className="flex items-center gap-2 mb-2">
+              <Link to="/" className="text-emerald-600 hover:text-emerald-700 font-medium">← Ana Menü</Link>
+          </div>
           <h2 className="text-xl font-bold text-slate-800">Profilim</h2>
           <p className="text-sm text-slate-500 mt-1">Kişisel bilgilerinizi ve şifrenizi güncelleyin.</p>
         </div>
-        <Link 
-          to="/" 
-          className="w-10 h-10 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 rounded-full flex items-center justify-center transition-all shadow-sm"
-          title="Anasayfaya Dön"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-        </Link>
       </div>
 
       <div className={isMobileResponsive ? 'p-4 sm:p-6' : 'p-6'}>

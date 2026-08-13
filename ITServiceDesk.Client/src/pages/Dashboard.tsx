@@ -189,52 +189,52 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Stat Card 1 */}
-        <Card className="hover:shadow-md transition-shadow hover:-translate-y-1">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
             </div>
             <div>
-              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Açık Talepler' : (activeTab === 'tasks' ? 'Açık Görevlerim' : 'Açık Taleplerim')}</p>
+              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Açık Talepler' : (isTechnician && activeTab === 'tasks' ? 'Açık Görevlerim' : 'Açık Taleplerim')}</p>
               <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : openTickets}</h3>
             </div>
           </CardContent>
         </Card>
 
         {/* Stat Card - İşlemde */}
-        <Card className="hover:shadow-md transition-shadow hover:-translate-y-1">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
-              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'İşlemdeki Talepler' : (activeTab === 'tasks' ? 'İşlemdeki Görevlerim' : 'İşlemdeki Taleplerim')}</p>
+              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'İşlemdeki Talepler' : (isTechnician && activeTab === 'tasks' ? 'İşlemdeki Görevlerim' : 'İşlemdeki Taleplerim')}</p>
               <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : inProgressTickets}</h3>
             </div>
           </CardContent>
         </Card>
 
         {/* Stat Card 2 */}
-        <Card className="hover:shadow-md transition-shadow hover:-translate-y-1">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </div>
             <div>
-              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Çözülenler' : (activeTab === 'tasks' ? 'Çözülen Görevlerim' : 'Çözülen Taleplerim')}</p>
+              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Sistemdeki Çözülenler' : (isTechnician && activeTab === 'tasks' ? 'Çözülen Görevlerim' : 'Çözülen Taleplerim')}</p>
               <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : resolvedTickets}</h3>
             </div>
           </CardContent>
         </Card>
 
         {/* Stat Card 3 */}
-        <Card className="hover:shadow-md transition-shadow hover:-translate-y-1">
+        <Card className="hover:shadow-md transition-shadow">
           <CardContent className="flex items-center gap-4 pt-6">
             <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
-              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Geciken Talepler' : (activeTab === 'tasks' ? 'Geciken Görevlerim' : 'Geciken Taleplerim')}</p>
+              <p className="text-slate-500 text-sm font-medium">{isAdmin ? 'Geciken Talepler' : (isTechnician && activeTab === 'tasks' ? 'Geciken Görevlerim' : 'Geciken Taleplerim')}</p>
               <h3 className="text-2xl font-bold text-slate-800">{isLoading ? '-' : escalatedTickets}</h3>
             </div>
           </CardContent>

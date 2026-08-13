@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { departmentService } from '../services/departmentService';
+import { userService } from '../services/userService';
 import type { DepartmentResponseDto } from '../types/department';
+import type { UserListDto } from '../types/user';
 import { authService } from '../services/authService';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -15,21 +17,31 @@ import { Textarea } from '../components/ui/Textarea';
 export default function Departments() {
   const isAdmin = authService.isAdmin();
   const [departments, setDepartments] = useState<DepartmentResponseDto[]>([]);
+  const [users, setUsers] = useState<UserListDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   const loadData = async () => {
     try {
-      const response = await departmentService.getAll();
-      if (response.isSuccess && response.data) {
-        setDepartments(response.data);
+      const [deptRes, userRes] = await Promise.all([
+        departmentService.getAll(),
+        userService.getAll()
+      ]);
+      
+      if (deptRes.isSuccess && deptRes.data) {
+        setDepartments(deptRes.data);
       } else {
-        toast.error(response.message || 'Departmanlar yüklenirken bir hata oluştu.');
+        toast.error(deptRes.message || 'Departmanlar yüklenirken bir hata oluştu.');
+      }
+      
+      if (userRes.isSuccess && userRes.data) {
+        setUsers(userRes.data);
       }
     } catch (err: any) {
-      toast.error('Departmanlar yüklenirken bir hata oluştu.');
+      toast.error('Veriler yüklenirken bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -38,6 +50,41 @@ export default function Departments() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const renderSortIndicator = (key: string) => {
+    if (sortConfig?.key !== key) return <svg className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>;
+    return sortConfig.direction === 'asc' 
+      ? <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+      : <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>;
+  };
+
+  const sortedDepartments = [...departments].sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    if (sortConfig.key === 'name') {
+      if (a.name < b.name) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (a.name > b.name) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    }
+    
+    if (sortConfig.key === 'userCount') {
+      const countA = users.filter(u => u.departmentId === a.id).length;
+      const countB = users.filter(u => u.departmentId === b.id).length;
+      if (countA < countB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (countA > countB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    }
+    
+    return 0;
+  });
 
   const openAddModal = () => {
     setEditingId(null);
@@ -135,15 +182,20 @@ export default function Departments() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Departman Adı</TableHead>
+                <TableHead className="cursor-pointer group" onClick={() => handleSort('name')}>
+                  <div className="flex items-center gap-2">Departman Adı {renderSortIndicator('name')}</div>
+                </TableHead>
                 <TableHead>Açıklama</TableHead>
+                <TableHead className="cursor-pointer group" onClick={() => handleSort('userCount')}>
+                  <div className="flex items-center gap-2">Personel {renderSortIndicator('userCount')}</div>
+                </TableHead>
                 {isAdmin && <TableHead className="text-right">İşlemler</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {departments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 3 : 2} className="h-64">
+                  <TableCell colSpan={isAdmin ? 4 : 3} className="h-64">
                     <EmptyState 
                       title="Departman Yok" 
                       description="Sistemde henüz bir departman bulunmuyor." 
@@ -152,13 +204,16 @@ export default function Departments() {
                   </TableCell>
                 </TableRow>
               ) : (
-                departments.map(dept => (
+                sortedDepartments.map(dept => (
                   <TableRow key={dept.id}>
                     <TableCell className="font-medium text-slate-800">
                       {dept.name}
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {dept.description || '-'}
+                    </TableCell>
+                    <TableCell className="text-slate-600 font-medium">
+                      {users.filter(u => u.departmentId === dept.id).length} Kişi
                     </TableCell>
                     {isAdmin && (
                       <TableCell className="text-right">

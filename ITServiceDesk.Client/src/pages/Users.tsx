@@ -23,6 +23,8 @@ const Users: React.FC = () => {
 
   // Filter & Sort states
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('All');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('All');
   const [sortConfig, setSortConfig] = useState<{ key: keyof UserListDto; direction: 'asc' | 'desc' } | null>(null);
 
   // Modals state
@@ -217,6 +219,19 @@ const Users: React.FC = () => {
       );
     }
 
+    if (roleFilter !== 'All') {
+      filtered = filtered.filter(u => {
+        if (roleFilter === 'Admin') return u.roles.includes('Admin');
+        if (roleFilter === 'Technician') return u.roles.includes('Technician');
+        if (roleFilter === 'User') return u.roles.includes('User') && !u.roles.includes('Admin') && !u.roles.includes('Technician');
+        return true;
+      });
+    }
+
+    if (departmentFilter !== 'All') {
+      filtered = filtered.filter(u => u.departmentId === departmentFilter);
+    }
+
     if (sortConfig) {
       filtered = [...filtered].sort((a, b) => {
         let valA = a[sortConfig.key];
@@ -256,6 +271,11 @@ const Users: React.FC = () => {
 
   const displayedUsers = getFilteredAndSortedUsers();
 
+  const totalUsersCount = users.length;
+  const adminCount = users.filter(u => u.roles.includes('Admin')).length;
+  const technicianCount = users.filter(u => u.roles.includes('Technician')).length;
+  const standardUserCount = users.filter(u => u.roles.includes('User') && !u.roles.includes('Admin') && !u.roles.includes('Technician')).length;
+
   return (
     <div className="flex flex-col h-full space-y-6">
       <PageHeader 
@@ -264,15 +284,71 @@ const Users: React.FC = () => {
         action={{ label: "Yeni Kullanıcı", onClick: () => { resetForm(); setIsAddModalOpen(true); } }}
       />
 
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+        <Card className="p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500">Toplam Kullanıcı</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{totalUsersCount}</p>
+          </div>
+          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          </div>
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500">Admin</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{adminCount}</p>
+          </div>
+          <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          </div>
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500">Teknisyen</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{technicianCount}</p>
+          </div>
+          <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </div>
+        </Card>
+        <Card className="p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500">User</p>
+            <p className="text-2xl font-bold text-slate-800 mt-1">{standardUserCount}</p>
+          </div>
+          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          </div>
+        </Card>
+      </div>
+
       <Card className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-white flex items-center justify-between gap-4 shrink-0">
-          <div className="w-72">
+        <div className="p-4 border-b border-slate-100 bg-white flex flex-col md:flex-row gap-4 shrink-0">
+          <div className="flex-1 min-w-[200px]">
             <Input 
               type="text" 
               placeholder="Ad veya Soyad ara..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
             />
+          </div>
+          <div className="w-full md:w-48">
+            <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+              <option value="All">Tüm Kullanıcılar</option>
+              <option value="Admin">Admin</option>
+              <option value="Technician">Teknisyen</option>
+              <option value="User">User</option>
+            </Select>
+          </div>
+          <div className="w-full md:w-48">
+            <Select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+              <option value="All">Tüm Departmanlar</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </Select>
           </div>
         </div>
 
@@ -312,8 +388,8 @@ const Users: React.FC = () => {
                       <Badge variant="slate">{user.departmentName || 'Atanmadı'}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.roles.includes('Admin') ? 'blue' : 'slate'}>
-                        {user.roles.includes('Admin') ? 'Admin' : 'User'}
+                      <Badge variant={user.roles.includes('Admin') ? 'blue' : user.roles.includes('Technician') ? 'emerald' : 'slate'}>
+                        {user.roles.includes('Admin') ? 'Admin' : user.roles.includes('Technician') ? 'Teknisyen' : 'User'}
                       </Badge>
                     </TableCell>
                     <TableCell>
