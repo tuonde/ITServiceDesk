@@ -251,7 +251,13 @@ public class TicketManager : ITicketService
             var device = await _deviceRepository.GetByIdAsync(existingTicket.DeviceId.Value);
             if (device != null)
             {
-                if (existingTicket.Status == TicketStatus.InProgress)
+                if (existingTicket.Status == TicketStatus.Open)
+                {
+                    device.Status = DeviceStatus.Faulty;
+                    _deviceRepository.Update(device);
+                    await _deviceRepository.SaveChangesAsync();
+                }
+                else if (existingTicket.Status == TicketStatus.InProgress)
                 {
                     device.Status = DeviceStatus.Maintenance;
                     _deviceRepository.Update(device);

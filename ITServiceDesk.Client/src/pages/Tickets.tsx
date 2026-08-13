@@ -370,6 +370,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
     if (!editTicketData || !selectedTicket) return;
     try {
       setIsEditing(true);
+
       await ticketService.update(selectedTicket.id, {
         id: selectedTicket.id,
         title: editTicketData.title,
@@ -378,13 +379,15 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
         priority: editTicketData.priority,
         assigneeId: selectedTicket.assigneeId || null,
         departmentId: selectedTicket.departmentId || null,
-        deviceId: selectedTicket.deviceId || null,
+        deviceId: editTicketData.deviceId || null,
+        categoryId: editTicketData.categoryId || null,
         resolutionReport: selectedTicket.resolutionReport || null
       });
       setIsEditModalOpen(false);
       setSelectedTicket(null);
       toast.success('Talep başarıyla güncellendi.');
       loadTickets();
+      loadDevices();
     } catch (err: any) {
       alert(err.message || 'Güncelleme başarısız oldu.');
     } finally {
@@ -924,7 +927,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
                       )}
-                      {!isAdmin && !isTechnician && ticket.status === TicketStatus.Open && (
+                      {!isAdmin && (!isTechnician || mode === 'my-requests') && ticket.status === TicketStatus.Open && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1227,6 +1230,13 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                       </div>
                     </div>
                   )}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                      Arıza Türü
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700 truncate" title={selectedTicket.categoryName || 'Belirtilmedi'}>{selectedTicket.categoryName || 'Belirtilmedi'}</span>
+                  </div>
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
