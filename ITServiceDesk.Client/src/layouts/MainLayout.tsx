@@ -132,11 +132,11 @@ const MainLayout: React.FC = () => {
     return () => window.removeEventListener('logo-updated', handleLogoUpdate);
   }, []);
 
-  if (!authService.isAuthenticated()) {
-    return <Navigate to="/login" replace />;
-  }
+  const isAuthenticated = authService.isAuthenticated();
 
   React.useEffect(() => {
+    if (!isAuthenticated) return;
+
     const token = localStorage.getItem('token');
     if (token) {
       signalrService.startConnection(token);
@@ -204,7 +204,11 @@ const MainLayout: React.FC = () => {
       signalrService.off('ReceiveNotification', handleReceiveNotification);
       signalrService.stopConnection();
     };
-  }, [isAdmin]);
+  }, [isAdmin, isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-800 overflow-hidden">
@@ -484,19 +488,20 @@ const MainLayout: React.FC = () => {
           <div className={`pb-2 shrink-0 flex items-center justify-between ${isMobileResponsive ? 'px-4 pt-4 sm:px-8 sm:pt-6' : 'px-8 pt-6'}`}>
             <h2 className="text-slate-800 font-bold text-2xl tracking-tight">{pageTitle}</h2>
             {isDashboardPage && (
-              <div className="flex items-center gap-4 px-5 py-2.5 bg-white/70 backdrop-blur-md border border-slate-200/60 rounded-2xl shadow-sm hover:shadow-md hover:bg-white transition-all group">
-                <div className="flex flex-col items-end border-r border-slate-200/80 pr-4">
-                  <div className="flex items-center gap-1.5 text-slate-700 font-bold text-sm tracking-wide">
-                    <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <div className="flex items-center gap-3 px-4 py-1.5 bg-white/60 backdrop-blur-sm border border-slate-200/50 rounded-xl shadow-sm transition-colors hover:bg-white/80 select-none">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <span className="text-sm font-medium text-slate-700">
                     {currentTime.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 group-hover:text-indigo-400 transition-colors">
+                  </span>
+                  <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     {currentTime.toLocaleDateString('tr-TR', { weekday: 'long' })}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span className="text-xl font-black text-slate-800 tabular-nums tracking-tight">
+                <div className="w-px h-3.5 bg-slate-300"></div>
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-emerald-500/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span className="text-sm font-semibold tabular-nums text-slate-800 tracking-tight">
                     {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>

@@ -76,5 +76,13 @@ export const ticketService = {
             throw new Error(response.data.message || 'Arama yapılamadı.');
         }
         return response.data.data as TicketSearchDto[];
+    },
+
+    reopen: async (id: string, reason: string): Promise<TicketResponseDto> => {
+        const response = await api.post<ApiResponse<TicketResponseDto>>(`/api/Tickets/${id}/reopen`, { reason });
+        if (!response.data.isSuccess) {
+            throw new Error(response.data.message || 'Bilet yeniden açılamadı.');
+        }
+        return response.data.data as TicketResponseDto;
     }
 };

@@ -5,6 +5,14 @@ export interface SystemSettingsDto {
   sessionTimeoutMinutes: number;
   passwordMinLength: number;
   passwordRequireUppercase: boolean;
+  slaCriticalResponseHours: number;
+  slaCriticalResolutionHours: number;
+  slaHighResponseHours: number;
+  slaHighResolutionHours: number;
+  slaMediumResponseHours: number;
+  slaMediumResolutionHours: number;
+  slaLowResponseHours: number;
+  slaLowResolutionHours: number;
 }
 
 export const systemSettingsService = {

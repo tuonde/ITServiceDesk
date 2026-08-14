@@ -139,4 +139,26 @@ public class TicketsController : ControllerBase
 
         return Ok(ApiResponse<bool>.Success(true, "Ticket silindi."));
     }
+
+    [HttpPost("{id}/reopen")]
+    public async Task<IActionResult> Reopen(Guid id, [FromBody] TicketReopenDto dto)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(ApiResponse<TicketResponseDto>.Fail("Geçersiz kullanıcı."));
+
+        try
+        {
+            var result = await _ticketService.ReopenAsync(id, dto, userId);
+            return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket yeniden açıldı."));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<TicketResponseDto>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ApiResponse<TicketResponseDto>.Fail(ex.Message));
+        }
+    }
 }

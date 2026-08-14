@@ -112,6 +112,11 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
   const [editTicketData, setEditTicketData] = useState<{ id: string, title: string, description: string, priority: Priority, deviceId: string | null, categoryId: string | null }>({ id: '', title: '', description: '', priority: Priority.Low, deviceId: null, categoryId: null });
   const [isEditing, setIsEditing] = useState(false);
 
+  // Reopen Ticket Modal State
+  const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
+  const [isReopening, setIsReopening] = useState(false);
+
   // Comments State
   const [comments, setComments] = useState<CommentResponseDto[]>([]);
   const [newCommentContent, setNewCommentContent] = useState('');
@@ -318,6 +323,26 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
       alert(err.message || 'Oluşturulamadı.');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleReopenTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !reopenReason.trim()) return;
+    try {
+      setIsReopening(true);
+      await ticketService.reopen(selectedTicket.id, reopenReason);
+      toast.success("Bilet başarıyla yeniden açıldı.");
+      setIsReopenModalOpen(false);
+      setReopenReason('');
+      loadTickets();
+      const updated = await ticketService.getById(selectedTicket.id);
+      setSelectedTicket(updated);
+      loadComments(selectedTicket.id);
+    } catch (err: any) {
+      toast.error(err.message || 'Yeniden açma işlemi başarısız oldu.');
+    } finally {
+      setIsReopening(false);
     }
   };
 
@@ -1415,8 +1440,19 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                       </div>
                     </form>
                   ) : (
-                    <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm p-4 rounded-xl text-center">
-                      Bu talep çözüldüğü veya kapatıldığı için yeni mesaja kapalıdır.
+                    <div className="bg-amber-50 border border-amber-100 text-amber-700 text-sm p-4 rounded-xl text-center space-y-3">
+                      <p>Bu talep çözüldüğü veya kapatıldığı için yeni mesaja kapalıdır.</p>
+                      {selectedTicket.status === TicketStatus.Resolved && (
+                        <div>
+                          <Button 
+                            variant="secondary" 
+                            className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200 shadow-none text-xs px-3 py-1.5 h-auto"
+                            onClick={() => setIsReopenModalOpen(true)}
+                          >
+                            Talebi Yeniden Aç (Re-open)
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1456,6 +1492,50 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
               </ModalFooter>
             </div>
           )}
+        </Modal>
+        , document.body)}
+
+      {/* Reopen Ticket Modal */}
+      {createPortal(
+        <Modal
+          isOpen={isReopenModalOpen && !!selectedTicket}
+          onClose={() => setIsReopenModalOpen(false)}
+          className="max-w-lg"
+        >
+          <ModalHeader
+            title="Talebi Yeniden Aç"
+            onClose={() => setIsReopenModalOpen(false)}
+          />
+          <form onSubmit={handleReopenTicket}>
+            <ModalContent className="space-y-4">
+              <div className="bg-amber-50 text-amber-800 text-sm p-4 rounded-xl border border-amber-100">
+                <p className="font-semibold mb-1">Dikkat!</p>
+                <p>Bileti yeniden açmak üzeresiniz. Lütfen sorunun devam ettiğine dair detaylı bir açıklama yazınız.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Yeniden Açma Nedeni</label>
+                <textarea
+                  className="w-full rounded-xl border-slate-200 focus:border-amber-500 focus:ring-amber-500 text-sm p-3 min-h-[100px] resize-none"
+                  placeholder="Sorun neden devam ediyor?"
+                  value={reopenReason}
+                  onChange={e => setReopenReason(e.target.value)}
+                  required
+                />
+              </div>
+            </ModalContent>
+            <ModalFooter>
+              <Button type="button" variant="outline" onClick={() => setIsReopenModalOpen(false)}>
+                İptal
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isReopening || !reopenReason.trim()}
+                className="bg-amber-500 hover:bg-amber-600 text-white"
+              >
+                {isReopening ? 'Açılıyor...' : 'Yeniden Aç'}
+              </Button>
+            </ModalFooter>
+          </form>
         </Modal>
         , document.body)}
 

@@ -38,7 +38,15 @@ public class SystemSettingsService : ISystemSettingsService
             AppName = settings.AppName,
             SessionTimeoutMinutes = settings.SessionTimeoutMinutes,
             PasswordMinLength = settings.PasswordMinLength,
-            PasswordRequireUppercase = settings.PasswordRequireUppercase
+            PasswordRequireUppercase = settings.PasswordRequireUppercase,
+            SlaCriticalResponseHours = settings.SlaCriticalResponseHours,
+            SlaCriticalResolutionHours = settings.SlaCriticalResolutionHours,
+            SlaHighResponseHours = settings.SlaHighResponseHours,
+            SlaHighResolutionHours = settings.SlaHighResolutionHours,
+            SlaMediumResponseHours = settings.SlaMediumResponseHours,
+            SlaMediumResolutionHours = settings.SlaMediumResolutionHours,
+            SlaLowResponseHours = settings.SlaLowResponseHours,
+            SlaLowResolutionHours = settings.SlaLowResolutionHours
         };
     }
 
@@ -56,6 +64,15 @@ public class SystemSettingsService : ISystemSettingsService
         settings.SessionTimeoutMinutes = dto.SessionTimeoutMinutes;
         settings.PasswordMinLength = dto.PasswordMinLength;
         settings.PasswordRequireUppercase = dto.PasswordRequireUppercase;
+        
+        settings.SlaCriticalResponseHours = dto.SlaCriticalResponseHours;
+        settings.SlaCriticalResolutionHours = dto.SlaCriticalResolutionHours;
+        settings.SlaHighResponseHours = dto.SlaHighResponseHours;
+        settings.SlaHighResolutionHours = dto.SlaHighResolutionHours;
+        settings.SlaMediumResponseHours = dto.SlaMediumResponseHours;
+        settings.SlaMediumResolutionHours = dto.SlaMediumResolutionHours;
+        settings.SlaLowResponseHours = dto.SlaLowResponseHours;
+        settings.SlaLowResolutionHours = dto.SlaLowResolutionHours;
 
         await _context.SaveChangesAsync();
     }

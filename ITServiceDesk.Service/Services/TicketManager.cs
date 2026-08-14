@@ -20,6 +20,8 @@ public class TicketManager : ITicketService
     private readonly IHubContext<TicketHub> _hubContext;
     private readonly INotificationService _notificationService;
     private readonly IRepository<Device> _deviceRepository;
+    private readonly IRepository<SystemSetting> _systemSettingRepository;
+    private readonly IRepository<Comment> _commentRepository;
 
     public TicketManager(
         ITicketRepository ticketRepository, 
@@ -27,7 +29,9 @@ public class TicketManager : ITicketService
         ILogger<TicketManager> logger,
         IHubContext<TicketHub> hubContext,
         INotificationService notificationService,
-        IRepository<Device> deviceRepository)
+        IRepository<Device> deviceRepository,
+        IRepository<SystemSetting> systemSettingRepository,
+        IRepository<Comment> commentRepository)
     {
         _ticketRepository = ticketRepository;
         _mapper = mapper;
@@ -35,6 +39,8 @@ public class TicketManager : ITicketService
         _hubContext = hubContext;
         _notificationService = notificationService;
         _deviceRepository = deviceRepository;
+        _systemSettingRepository = systemSettingRepository;
+        _commentRepository = commentRepository;
     }
 
     public async Task<PagedResponse<IEnumerable<TicketResponseDto>>> GetAllAsync(TicketFilterDto filter, Guid userId, IList<string> userRoles)
@@ -146,27 +152,30 @@ public class TicketManager : ITicketService
         
         // SLA Ataması
         var now = DateTime.UtcNow;
+        var settings = await _systemSettingRepository.GetAllAsync();
+        var setting = settings.FirstOrDefault() ?? new SystemSetting();
+
         switch (ticket.Priority)
         {
             case Priority.Critical:
-                ticket.ResponseDueDate = now.AddHours(1);
-                ticket.ResolutionDueDate = now.AddHours(4);
+                ticket.ResponseDueDate = now.AddHours(setting.SlaCriticalResponseHours > 0 ? setting.SlaCriticalResponseHours : 1);
+                ticket.ResolutionDueDate = now.AddHours(setting.SlaCriticalResolutionHours > 0 ? setting.SlaCriticalResolutionHours : 4);
                 break;
             case Priority.High:
-                ticket.ResponseDueDate = now.AddHours(4);
-                ticket.ResolutionDueDate = now.AddHours(8);
+                ticket.ResponseDueDate = now.AddHours(setting.SlaHighResponseHours > 0 ? setting.SlaHighResponseHours : 4);
+                ticket.ResolutionDueDate = now.AddHours(setting.SlaHighResolutionHours > 0 ? setting.SlaHighResolutionHours : 8);
                 break;
             case Priority.Medium:
-                ticket.ResponseDueDate = now.AddHours(8);
-                ticket.ResolutionDueDate = now.AddHours(24);
+                ticket.ResponseDueDate = now.AddHours(setting.SlaMediumResponseHours > 0 ? setting.SlaMediumResponseHours : 8);
+                ticket.ResolutionDueDate = now.AddHours(setting.SlaMediumResolutionHours > 0 ? setting.SlaMediumResolutionHours : 24);
                 break;
             case Priority.Low:
-                ticket.ResponseDueDate = now.AddHours(24);
-                ticket.ResolutionDueDate = now.AddHours(48);
+                ticket.ResponseDueDate = now.AddHours(setting.SlaLowResponseHours > 0 ? setting.SlaLowResponseHours : 24);
+                ticket.ResolutionDueDate = now.AddHours(setting.SlaLowResolutionHours > 0 ? setting.SlaLowResolutionHours : 48);
                 break;
             default:
-                ticket.ResponseDueDate = now.AddHours(24);
-                ticket.ResolutionDueDate = now.AddHours(48);
+                ticket.ResponseDueDate = now.AddHours(setting.SlaMediumResponseHours > 0 ? setting.SlaMediumResponseHours : 24);
+                ticket.ResolutionDueDate = now.AddHours(setting.SlaMediumResolutionHours > 0 ? setting.SlaMediumResolutionHours : 48);
                 break;
         }
 
@@ -203,9 +212,39 @@ public class TicketManager : ITicketService
 
         var oldAssignee = existingTicket.AssigneeId;
         var oldStatus = existingTicket.Status;
+        var oldPriority = existingTicket.Priority;
 
         _mapper.Map(dto, existingTicket);
         
+        if (oldPriority != dto.Priority)
+        {
+            var settings = await _systemSettingRepository.GetAllAsync();
+            var setting = settings.FirstOrDefault() ?? new SystemSetting();
+            switch (existingTicket.Priority)
+            {
+                case Priority.Critical:
+                    existingTicket.ResponseDueDate = existingTicket.CreatedAt.AddHours(setting.SlaCriticalResponseHours > 0 ? setting.SlaCriticalResponseHours : 1);
+                    existingTicket.ResolutionDueDate = existingTicket.CreatedAt.AddHours(setting.SlaCriticalResolutionHours > 0 ? setting.SlaCriticalResolutionHours : 4);
+                    break;
+                case Priority.High:
+                    existingTicket.ResponseDueDate = existingTicket.CreatedAt.AddHours(setting.SlaHighResponseHours > 0 ? setting.SlaHighResponseHours : 4);
+                    existingTicket.ResolutionDueDate = existingTicket.CreatedAt.AddHours(setting.SlaHighResolutionHours > 0 ? setting.SlaHighResolutionHours : 8);
+                    break;
+                case Priority.Medium:
+                    existingTicket.ResponseDueDate = existingTicket.CreatedAt.AddHours(setting.SlaMediumResponseHours > 0 ? setting.SlaMediumResponseHours : 8);
+                    existingTicket.ResolutionDueDate = existingTicket.CreatedAt.AddHours(setting.SlaMediumResolutionHours > 0 ? setting.SlaMediumResolutionHours : 24);
+                    break;
+                case Priority.Low:
+                    existingTicket.ResponseDueDate = existingTicket.CreatedAt.AddHours(setting.SlaLowResponseHours > 0 ? setting.SlaLowResponseHours : 24);
+                    existingTicket.ResolutionDueDate = existingTicket.CreatedAt.AddHours(setting.SlaLowResolutionHours > 0 ? setting.SlaLowResolutionHours : 48);
+                    break;
+                default:
+                    existingTicket.ResponseDueDate = existingTicket.CreatedAt.AddHours(setting.SlaMediumResponseHours > 0 ? setting.SlaMediumResponseHours : 24);
+                    existingTicket.ResolutionDueDate = existingTicket.CreatedAt.AddHours(setting.SlaMediumResolutionHours > 0 ? setting.SlaMediumResolutionHours : 48);
+                    break;
+            }
+        }
+
         if (dto.Status == TicketStatus.Resolved || dto.Status == TicketStatus.Closed)
         {
             if (existingTicket.ResolvedAt == null)
@@ -286,6 +325,56 @@ public class TicketManager : ITicketService
         return responseDto;
     }
 
+
+    public async Task<TicketResponseDto> ReopenAsync(Guid id, TicketReopenDto dto, Guid userId)
+    {
+        var existingTicket = await _ticketRepository.GetByIdAsync(id);
+        if (existingTicket == null)
+            throw new Exception("Ticket bulunamadı.");
+
+        if (existingTicket.Status != TicketStatus.Resolved)
+            throw new Exception("Sadece çözülmüş (Resolved) durumdaki biletler yeniden açılabilir.");
+
+        if (existingTicket.RequesterId != userId)
+            throw new UnauthorizedAccessException("Sadece bileti açan kişi yeniden açabilir.");
+
+        existingTicket.Status = TicketStatus.Open;
+        existingTicket.ResolvedAt = null; // Clear ResolvedAt
+        existingTicket.ResolutionReport = null; // Optional: clear or keep it? Plan says: Status -> Open, clear ResolvedAt. I'll clear ResolvedAt.
+
+        _ticketRepository.Update(existingTicket);
+        await _ticketRepository.SaveChangesAsync();
+
+        // Add Comment
+        if (!string.IsNullOrWhiteSpace(dto.Reason))
+        {
+            var comment = new Comment
+            {
+                TicketId = existingTicket.Id,
+                UserId = userId,
+                Content = $"[BİLET YENİDEN AÇILDI]: {dto.Reason}",
+                IsInternal = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _commentRepository.AddAsync(comment);
+            await _commentRepository.SaveChangesAsync();
+        }
+
+        // Notify Assignee
+        if (existingTicket.AssigneeId.HasValue && existingTicket.AssigneeId.Value != Guid.Empty)
+        {
+            await _notificationService.CreateAndSendNotificationAsync(new DTOs.Notifications.NotificationCreateDto
+            {
+                Message = $"Kullanıcı, biletini yeniden açtı (Re-opened): {existingTicket.Title}",
+                UserId = existingTicket.AssigneeId.Value,
+                RelatedTicketId = existingTicket.Id
+            });
+        }
+
+        await _hubContext.Clients.All.SendAsync("ReceiveTicketUpdate", existingTicket.Id);
+
+        return _mapper.Map<TicketResponseDto>(existingTicket);
+    }
 
     public async Task<IEnumerable<TicketResponseDto>> GetByDeviceIdAsync(Guid deviceId)
     {

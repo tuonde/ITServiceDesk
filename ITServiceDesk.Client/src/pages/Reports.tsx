@@ -213,7 +213,7 @@ const Reports: React.FC = () => {
     })).sort((a, b) => b.count - a.count);
   }, [tickets]);
 
-  // Chart 5: Teknisyen Performans (Ortalama Çözüm Süresi)
+  // Chart 5: Teknisyen Performans (Ortalama Çözüm Süresi ve Çözülen Bilet)
   const technicianPerformance = useMemo(() => {
     const map: Record<string, { totalHours: number, count: number }> = {};
     tickets.forEach(t => {
@@ -231,8 +231,28 @@ const Reports: React.FC = () => {
     });
     return Object.entries(map).map(([name, data]) => ({
       name: name,
-      'Ortalama Saat': parseFloat((data.totalHours / data.count).toFixed(1))
+      'Ortalama Saat': parseFloat((data.totalHours / data.count).toFixed(1)),
+      'Çözülen Talep': data.count
     })).sort((a, b) => a['Ortalama Saat'] - b['Ortalama Saat']).slice(0, 10);
+  }, [tickets]);
+
+  // Chart 8: Kategori Dağılımı
+  const categoryDistribution = useMemo(() => {
+    const map: Record<string, number> = {};
+    tickets.forEach(t => {
+      const catName = t.categoryName || 'Kategorisiz';
+      map[catName] = (map[catName] || 0) + 1;
+    });
+    
+    // Sort and give colors
+    const colors = ['#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#64748b', '#14b8a6', '#f43f5e'];
+    return Object.entries(map)
+      .map(([name, value], index) => ({
+        name,
+        value,
+        color: colors[index % colors.length]
+      }))
+      .sort((a, b) => b.value - a.value);
   }, [tickets]);
 
   // Chart 6: Maliyet Dağılımı (Departmana Göre)
@@ -476,7 +496,7 @@ const Reports: React.FC = () => {
               {/* Technician Performance Chart */}
               <Card className="lg:col-span-3 border-slate-100">
                 <CardHeader>
-                  <h3 className="text-base font-bold text-slate-800">Teknisyen Performansı (Ortalama Çözüm Süresi - Saat)</h3>
+                  <h3 className="text-base font-bold text-slate-800">Teknisyen Performansı (Ortalama Çözüm Süresi ve Çözülen Talep)</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
                   {technicianPerformance.length === 0 ? (
@@ -486,18 +506,52 @@ const Reports: React.FC = () => {
                       <BarChart data={technicianPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <RechartsTooltip
                           cursor={{ fill: '#f8fafc' }}
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                           labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
                         />
-                        <Bar dataKey="Ortalama Saat" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                          {technicianPerformance.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8b5cf6' : '#a855f7'} />
-                          ))}
-                        </Bar>
+                        <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                        <Bar yAxisId="left" dataKey="Ortalama Saat" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <Bar yAxisId="right" dataKey="Çözülen Talep" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
                       </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Category Distribution Chart */}
+              <Card className="lg:col-span-3 border-slate-100">
+                <CardHeader>
+                  <h3 className="text-base font-bold text-slate-800">Talep Kategori Dağılımı</h3>
+                </CardHeader>
+                <CardContent className="h-[300px] pt-0">
+                  {categoryDistribution.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryDistribution}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                          labelLine={false}
+                        >
+                          {categoryDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          itemStyle={{ color: '#334155', fontWeight: '500' }}
+                        />
+                      </PieChart>
                     </ResponsiveContainer>
                   )}
                 </CardContent>
