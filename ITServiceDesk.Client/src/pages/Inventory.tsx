@@ -67,7 +67,7 @@ const Inventory: React.FC = () => {
       setDevices(devs);
       setCategories(cats);
       setDepartments(depts.data || []);
-      setUsers(usrs.data || []);
+      setUsers((usrs.data || []).filter(u => u.isActive === true));
     } catch (error) {
       console.error(error);
       toast.error('Veriler yüklenirken hata oluştu');

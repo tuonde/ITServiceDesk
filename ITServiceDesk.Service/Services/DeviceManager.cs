@@ -4,15 +4,20 @@ using ITServiceDesk.Service.DTOs.Devices;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+
 namespace ITServiceDesk.Service.Services;
 
 public class DeviceManager : IDeviceService
 {
     private readonly ITServiceDeskDbContext _context;
+    private readonly IMapper _mapper;
 
-    public DeviceManager(ITServiceDeskDbContext context)
+    public DeviceManager(ITServiceDeskDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<IEnumerable<DeviceCategoryDto>> GetCategoriesAsync()
@@ -51,23 +56,9 @@ public class DeviceManager : IDeviceService
     public async Task<IEnumerable<DeviceDto>> GetAllAsync()
     {
         return await _context.Devices
-            .Include(d => d.Category)
-            .Include(d => d.Department)
             .Where(d => !d.IsDeleted)
             .OrderBy(d => d.Code)
-            .Select(d => new DeviceDto
-            {
-                Id = d.Id,
-                Code = d.Code,
-                Name = d.Name,
-                Status = d.Status,
-                CategoryId = d.CategoryId,
-                CategoryName = d.Category != null ? d.Category.Name : string.Empty,
-                DepartmentId = d.DepartmentId,
-                DepartmentName = d.Department != null ? d.Department.Name : null,
-                AssignedUserId = d.AssignedUserId,
-                AssignedUserName = d.AssignedUser != null ? d.AssignedUser.FirstName + " " + d.AssignedUser.LastName : null
-            })
+            .ProjectTo<DeviceDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
     }
 
@@ -77,49 +68,19 @@ public class DeviceManager : IDeviceService
         var departmentId = user?.DepartmentId;
 
         return await _context.Devices
-            .Include(d => d.Category)
-            .Include(d => d.Department)
-            .Include(d => d.AssignedUser)
             .Where(d => !d.IsDeleted && (d.AssignedUserId == userId || (d.AssignedUserId == null && d.DepartmentId == departmentId)))
             .OrderBy(d => d.Code)
-            .Select(d => new DeviceDto
-            {
-                Id = d.Id,
-                Code = d.Code,
-                Name = d.Name,
-                Status = d.Status,
-                CategoryId = d.CategoryId,
-                CategoryName = d.Category != null ? d.Category.Name : string.Empty,
-                DepartmentId = d.DepartmentId,
-                DepartmentName = d.Department != null ? d.Department.Name : null,
-                AssignedUserId = d.AssignedUserId,
-                AssignedUserName = d.AssignedUser != null ? d.AssignedUser.FirstName + " " + d.AssignedUser.LastName : null
-            })
+            .ProjectTo<DeviceDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
     }
     public async Task<DeviceDto?> GetByIdAsync(Guid id)
     {
         var device = await _context.Devices
-            .Include(d => d.Category)
-            .Include(d => d.Department)
-            .Include(d => d.AssignedUser)
-            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted);
+            .Where(d => d.Id == id && !d.IsDeleted)
+            .ProjectTo<DeviceDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
 
-        if (device == null) return null;
-
-        return new DeviceDto
-        {
-            Id = device.Id,
-            Code = device.Code,
-            Name = device.Name,
-            Status = device.Status,
-            CategoryId = device.CategoryId,
-            CategoryName = device.Category != null ? device.Category.Name : string.Empty,
-            DepartmentId = device.DepartmentId,
-            DepartmentName = device.Department != null ? device.Department.Name : null,
-            AssignedUserId = device.AssignedUserId,
-            AssignedUserName = device.AssignedUser != null ? device.AssignedUser.FirstName + " " + device.AssignedUser.LastName : null
-        };
+        return device;
     }
 
     public async Task<DeviceDto> CreateAsync(DeviceCreateDto dto)
@@ -137,13 +98,13 @@ public class DeviceManager : IDeviceService
         _context.Devices.Add(device);
         await _context.SaveChangesAsync();
 
-        return await GetByIdAsync(device.Id) ?? throw new Exception("Cihaz oluşturuldu ancak getirilemedi.");
+        return await GetByIdAsync(device.Id) ?? throw new AppException("Cihaz oluşturuldu ancak getirilemedi.");
     }
 
     public async Task<DeviceDto> UpdateAsync(Guid id, DeviceUpdateDto dto)
     {
         var device = await _context.Devices.FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted);
-        if (device == null) throw new Exception("Cihaz bulunamadı.");
+        if (device == null) throw new AppException("Cihaz bulunamadı.");
 
         device.Code = dto.Code;
         device.Name = dto.Name;
@@ -154,13 +115,13 @@ public class DeviceManager : IDeviceService
 
         await _context.SaveChangesAsync();
 
-        return await GetByIdAsync(device.Id) ?? throw new Exception("Cihaz güncellendi ancak getirilemedi.");
+        return await GetByIdAsync(device.Id) ?? throw new AppException("Cihaz güncellendi ancak getirilemedi.");
     }
 
     public async Task DeleteAsync(Guid id)
     {
         var device = await _context.Devices.FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted);
-        if (device == null) throw new Exception("Cihaz bulunamadı.");
+        if (device == null) throw new AppException("Cihaz bulunamadı.");
 
         device.IsDeleted = true;
         await _context.SaveChangesAsync();

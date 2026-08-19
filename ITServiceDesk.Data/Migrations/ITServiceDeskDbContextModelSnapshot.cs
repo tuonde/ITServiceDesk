@@ -178,6 +178,10 @@ namespace ITServiceDesk.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("IPAddress")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -647,7 +651,11 @@ namespace ITServiceDesk.Data.Migrations
 
                     b.HasIndex("DeviceId");
 
+                    b.HasIndex("Priority");
+
                     b.HasIndex("RequesterId");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Tickets");
                 });

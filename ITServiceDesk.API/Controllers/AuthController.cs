@@ -15,28 +15,14 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        try
-        {
-            var token = await _service.LoginAsync(dto);
-            return Ok(ApiResponse<string>.Success(token, "Giriş başarılı."));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<string>.Fail(ex.Message));
-        }
+        var token = await _service.LoginAsync(dto);
+        return Ok(ApiResponse<string>.Success(token, "Giriş başarılı."));
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        try
-        {
-            var result = await _service.RegisterAsync(dto);
-            return Ok(ApiResponse<UserResponseDto>.Success(result, "Kayıt başarılı."));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<UserResponseDto>.Fail(ex.Message));
-        }
+        var result = await _service.RegisterAsync(dto);
+        return Ok(ApiResponse<UserResponseDto>.Success(result, "Kayıt başarılı."));
     }
 }

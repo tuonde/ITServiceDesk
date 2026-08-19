@@ -127,7 +127,7 @@ public class KbArticleManager : IKbArticleService
     public async Task<KbArticleResponseDto> UpdateAsync(KbArticleUpdateDto dto)
     {
         var article = await _articleRepository.GetByIdAsync(dto.Id);
-        if (article == null) throw new Exception("Makale bulunamadı.");
+        if (article == null) throw new AppException("Makale bulunamadı.");
 
         _mapper.Map(dto, article);
         

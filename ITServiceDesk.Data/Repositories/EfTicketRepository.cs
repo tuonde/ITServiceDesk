@@ -20,6 +20,7 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             .Include(t => t.Department)
             .Include(t => t.Device)
             .Include(t => t.Category)
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
     }
 
@@ -31,6 +32,8 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             .Include(t => t.Department)
             .Include(t => t.Device)
             .Include(t => t.Category)
+            .Where(t => !t.IsDeleted)
+            .AsNoTracking()
             .ToListAsync();
     }
 
@@ -42,6 +45,8 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
             .Include(t => t.Department)
             .Include(t => t.Device)
             .Include(t => t.Category)
+            .Where(t => !t.IsDeleted)
+            .AsNoTracking()
             .AsQueryable();
 
         if (status.HasValue)
@@ -65,6 +70,7 @@ public class EfTicketRepository : EfRepository<Ticket>, ITicketRepository
         var totalCount = await query.CountAsync();
 
         var tickets = await query
+            .OrderByDescending(t => t.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

@@ -38,29 +38,15 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(UserCreateDto dto)
     {
-        try
-        {
-            var user = await _userService.CreateUserAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = user.Id }, ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla oluşturuldu."));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<UserListDto>.Fail(ex.Message));
-        }
+        var user = await _userService.CreateUserAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = user.Id }, ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla oluşturuldu."));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, UserUpdateDto dto)
     {
-        try
-        {
-            var user = await _userService.UpdateUserAsync(id, dto);
-            return Ok(ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla güncellendi."));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<UserListDto>.Fail(ex.Message));
-        }
+        var user = await _userService.UpdateUserAsync(id, dto);
+        return Ok(ApiResponse<UserListDto>.Success(user, "Kullanıcı başarıyla güncellendi."));
     }
 
     [HttpPatch("{id}/toggle-status")]
@@ -76,17 +62,10 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        try
-        {
-            var message = await _userService.DeleteUserAsync(id);
-            if (message == null)
-                return NotFound(ApiResponse<bool>.Fail("Kullanıcı bulunamadı."));
+        var message = await _userService.DeleteUserAsync(id);
+        if (message == null)
+            return NotFound(ApiResponse<bool>.Fail("Kullanıcı bulunamadı."));
 
-            return Ok(ApiResponse<bool>.Success(true, message));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<bool>.Fail(ex.Message));
-        }
+        return Ok(ApiResponse<bool>.Success(true, message));
     }
 }

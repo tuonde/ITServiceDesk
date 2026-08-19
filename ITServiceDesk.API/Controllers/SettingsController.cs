@@ -48,6 +48,37 @@ public class SettingsController : ControllerBase
         if (!allowedExtensions.Contains(extension))
             return BadRequest(ApiResponse<string>.Fail("Desteklenmeyen dosya formatı. Sadece resim dosyaları kabul edilir."));
 
+        // Magic bytes / Content check
+        if (extension != ".svg")
+        {
+            using (var stream = file.OpenReadStream())
+            using (var reader = new BinaryReader(stream))
+            {
+                var signatures = new Dictionary<string, List<byte[]>>
+                {
+                    { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+                    { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+                    { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
+                    { ".webp", new List<byte[]> { new byte[] { 0x52, 0x49, 0x46, 0x46 } } } // Riff
+                };
+
+                if (signatures.ContainsKey(extension))
+                {
+                    var fileSignatures = signatures[extension];
+                    var headerBytes = reader.ReadBytes(8);
+                    
+                    bool isMatch = fileSignatures.Any(sig => 
+                        headerBytes.Take(sig.Length).SequenceEqual(sig)
+                    );
+
+                    if (!isMatch)
+                    {
+                        return BadRequest(ApiResponse<string>.Fail("Geçersiz dosya içeriği (MIME Spoofing tespiti)."));
+                    }
+                }
+            }
+        }
+
         // Sunucu kök dizinini belirle
         string webRootPath = _env.WebRootPath;
         if (string.IsNullOrWhiteSpace(webRootPath))

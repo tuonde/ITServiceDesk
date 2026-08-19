@@ -61,7 +61,7 @@ public class DepartmentManager : IDepartmentService
     public async Task<DepartmentResponseDto> UpdateAsync(Guid id, DepartmentCreateDto dto)
     {
         var dept = await _departmentRepository.GetByIdAsync(id);
-        if (dept == null) throw new Exception("Not found");
+        if (dept == null) throw new AppException("Not found");
         
         _mapper.Map(dto, dept);
         _departmentRepository.Update(dept);

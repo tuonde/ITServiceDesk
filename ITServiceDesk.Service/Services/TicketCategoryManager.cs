@@ -41,7 +41,7 @@ public class TicketCategoryManager : ITicketCategoryService
     {
         var entity = await _repository.GetByIdAsync(dto.Id);
         if (entity == null)
-            throw new Exception("Category not found");
+            throw new AppException("Category not found");
 
         _mapper.Map(dto, entity);
         _repository.Update(entity);

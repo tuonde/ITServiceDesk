@@ -5,12 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+
 namespace ITServiceDesk.Data.Contexts;
 
 public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
 {
-    public ITServiceDeskDbContext(DbContextOptions<ITServiceDeskDbContext> options) : base(options)
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public ITServiceDeskDbContext(DbContextOptions<ITServiceDeskDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
     {
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public DbSet<Department> Departments { get; set; }
@@ -33,30 +39,17 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+    }
 
-        // Global DateTime UTC Conversion
-        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
-            v => v.ToUniversalTime(),
-            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder
+            .Properties<DateTime>()
+            .HaveConversion<DateTimeUtcConverter>();
 
-        var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
-            v => v.HasValue ? v.Value.ToUniversalTime() : v,
-            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
-
-        foreach (var entityType in builder.Model.GetEntityTypes())
-        {
-            foreach (var property in entityType.GetProperties())
-            {
-                if (property.ClrType == typeof(DateTime))
-                {
-                    property.SetValueConverter(dateTimeConverter);
-                }
-                else if (property.ClrType == typeof(DateTime?))
-                {
-                    property.SetValueConverter(nullableDateTimeConverter);
-                }
-            }
-        }
+        configurationBuilder
+            .Properties<DateTime?>()
+            .HaveConversion<NullableDateTimeUtcConverter>();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -66,11 +59,18 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
                         (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted));
 
         var auditLogs = new List<AuditLog>();
-        var firstUserId = Users.Select(u => u.Id).FirstOrDefault();
         
-        if (firstUserId == Guid.Empty && entries.Any())
+        Guid? currentUserId = null;
+        var userIdString = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (Guid.TryParse(userIdString, out var parsedId))
         {
-            return await base.SaveChangesAsync(cancellationToken);
+            currentUserId = parsedId;
+        }
+        
+        if (!currentUserId.HasValue && entries.Any())
+        {
+            // Eğer HttpContext yoksa (örn: arka plan işçisi), işlemi iptal etmiyoruz ama AuditLog yazarken UserId null olabilir
+            // currentUserId zaten null
         }
 
         foreach (var entry in entries)
@@ -121,7 +121,7 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
 
             var auditLog = new AuditLog
             {
-                UserId = firstUserId,
+                UserId = currentUserId,
                 Action = $"{action} on {tableName}",
                 OldValue = oldValues.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(oldValues),
                 NewValue = newValues.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(newValues),
@@ -141,6 +141,12 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
                 auditLog.TicketId = attachment.TicketId;
             }
 
+            var primaryKey = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey());
+            if (primaryKey != null && primaryKey.CurrentValue != null)
+            {
+                auditLog.EntityId = primaryKey.CurrentValue.ToString();
+            }
+
             auditLogs.Add(auditLog);
         }
 
@@ -151,4 +157,18 @@ public class ITServiceDeskDbContext : IdentityDbContext<AppUser, IdentityRole<Gu
 
         return await base.SaveChangesAsync(cancellationToken);
     }
+}
+
+public class DateTimeUtcConverter : ValueConverter<DateTime, DateTime>
+{
+    public DateTimeUtcConverter() : base(
+        v => v.ToUniversalTime(), 
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc)) { }
+}
+
+public class NullableDateTimeUtcConverter : ValueConverter<DateTime?, DateTime?>
+{
+    public NullableDateTimeUtcConverter() : base(
+        v => v.HasValue ? v.Value.ToUniversalTime() : v, 
+        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v) { }
 }

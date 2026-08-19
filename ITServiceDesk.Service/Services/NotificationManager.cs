@@ -6,6 +6,8 @@ using ITServiceDesk.Service.Interfaces;
 using ITServiceDesk.Service.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using ITServiceDesk.Core.Constants;
 
 namespace ITServiceDesk.Service.Services;
 
@@ -26,22 +28,28 @@ public class NotificationManager : INotificationService
 
     public async Task<IEnumerable<NotificationResponseDto>> GetUnreadByUserIdAsync(Guid userId)
     {
-        var all = await _repository.GetAllAsync();
-        var unread = all.Where(x => x.UserId == userId && !x.IsRead).OrderByDescending(x => x.CreatedAt);
+        var unread = await _repository.Query()
+            .Where(x => x.UserId == userId && !x.IsRead)
+            .OrderByDescending(x => x.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
         return _mapper.Map<IEnumerable<NotificationResponseDto>>(unread);
     }
 
     public async Task<IEnumerable<NotificationResponseDto>> GetAllByUserIdAsync(Guid userId)
     {
-        var all = await _repository.GetAllAsync();
-        var userNotifs = all.Where(x => x.UserId == userId).OrderByDescending(x => x.CreatedAt);
+        var userNotifs = await _repository.Query()
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
         return _mapper.Map<IEnumerable<NotificationResponseDto>>(userNotifs);
     }
 
     public async Task<NotificationResponseDto> MarkAsReadAsync(Guid id)
     {
         var notification = await _repository.GetByIdAsync(id);
-        if (notification == null) throw new Exception("Notification not found");
+        if (notification == null) throw new AppException("Notification not found");
         
         notification.IsRead = true;
         _repository.Update(notification);
@@ -51,8 +59,9 @@ public class NotificationManager : INotificationService
 
     public async Task MarkAllAsReadAsync(Guid userId)
     {
-        var all = await _repository.GetAllAsync();
-        var unread = all.Where(x => x.UserId == userId && !x.IsRead).ToList();
+        var unread = await _repository.Query()
+            .Where(x => x.UserId == userId && !x.IsRead)
+            .ToListAsync();
         
         foreach (var item in unread)
         {
@@ -83,14 +92,14 @@ public class NotificationManager : INotificationService
         var responseDto = _mapper.Map<NotificationResponseDto>(notification);
 
         // Send via SignalR
-        await _hubContext.Clients.User(dto.UserId.ToString()).SendAsync("ReceiveNotification", responseDto);
+        await _hubContext.Clients.User(dto.UserId.ToString()).SendAsync(SignalREventConstants.ReceiveNotification, responseDto);
 
         return responseDto;
     }
 
     public async Task NotifyAdminsAsync(string message, Guid? relatedTicketId)
     {
-        var admins = await _userManager.GetUsersInRoleAsync("Admin");
+        var admins = await _userManager.GetUsersInRoleAsync(RoleConstants.Admin);
         foreach (var admin in admins)
         {
             await CreateAndSendNotificationAsync(new NotificationCreateDto

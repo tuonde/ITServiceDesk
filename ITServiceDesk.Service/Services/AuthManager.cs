@@ -1,4 +1,5 @@
 using ITServiceDesk.Core.Entities;
+using Microsoft.Extensions.Logging;
 using ITServiceDesk.Service.DTOs.Auth;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -17,31 +18,47 @@ public class AuthManager : IAuthService
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IConfiguration _configuration;
     private readonly ISystemSettingsService _settingsService;
+    private readonly ILogger<AuthManager> _logger;
 
     public AuthManager(
         UserManager<AppUser> userManager, 
         SignInManager<AppUser> signInManager, 
         RoleManager<IdentityRole<Guid>> roleManager,
         IConfiguration configuration,
-        ISystemSettingsService settingsService)
+        ISystemSettingsService settingsService,
+        ILogger<AuthManager> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _configuration = configuration;
         _settingsService = settingsService;
+        _logger = logger;
     }
 
     public async Task<string> LoginAsync(LoginDto dto)
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null)
-            throw new Exception("Geçersiz e-posta veya şifre.");
+        {
+            _logger.LogWarning("Başarısız giriş denemesi: {Email} - Kullanıcı bulunamadı.", dto.Email);
+            throw new AppException("Geçersiz e-posta veya şifre.");
+        }
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
+        if (result.IsLockedOut)
+        {
+            _logger.LogWarning("Hesap kilitlendi: {Email}", dto.Email);
+            throw new AppException("Hesabınız çok fazla başarısız deneme nedeniyle kilitlendi. Lütfen daha sonra tekrar deneyin.");
+        }
+
         if (!result.Succeeded)
-            throw new Exception("Geçersiz e-posta veya şifre.");
+        {
+            _logger.LogWarning("Başarısız giriş denemesi: {Email} - Geçersiz şifre.", dto.Email);
+            throw new AppException("Geçersiz e-posta veya şifre.");
+        }
 
+        _logger.LogInformation("Başarılı giriş: {Email}", dto.Email);
         return await GenerateJwtToken(user);
     }
 
@@ -49,7 +66,7 @@ public class AuthManager : IAuthService
     {
         var existingUser = await _userManager.FindByEmailAsync(dto.Email);
         if (existingUser != null)
-            throw new Exception("Bu e-posta adresi zaten kullanımda.");
+            throw new AppException("Bu e-posta adresi zaten kullanımda.");
 
         // Rollerin varlığını kontrol et ve yoksa oluştur
         if (!await _roleManager.RoleExistsAsync("Admin"))
@@ -74,14 +91,11 @@ public class AuthManager : IAuthService
         if (!result.Succeeded)
         {
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new Exception($"Kayıt işlemi başarısız: {errors}");
+            throw new AppException($"Kayıt işlemi başarısız: {errors}");
         }
 
         // Yeni kullanıcılara varsayılan olarak "User" rolünü ata
-        if (user.Email.Contains("admin"))
-            await _userManager.AddToRoleAsync(user, "Admin");
-        else
-            await _userManager.AddToRoleAsync(user, "User");
+        await _userManager.AddToRoleAsync(user, "User");
 
         return new UserResponseDto
         {
@@ -95,8 +109,24 @@ public class AuthManager : IAuthService
     private async Task<string> GenerateJwtToken(AppUser user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? "ThisIsAVerySecretAndSecureKeyForITServiceDeskApplication";
+        var secretKey = jwtSettings["SecretKey"];
 
+        if (secretKey == "[SECRET_KEY_PLACEHOLDER]" || string.IsNullOrWhiteSpace(secretKey))
+        {
+            var envSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+            if (!string.IsNullOrWhiteSpace(envSecret))
+            {
+                secretKey = envSecret;
+            }
+            else
+            {
+                // Development fallback
+                secretKey = "DevelopmentSuperSecretKeyForLocalHost123456789!";
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+            throw new ArgumentNullException("JwtSettings:SecretKey bulunamadı.");
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),

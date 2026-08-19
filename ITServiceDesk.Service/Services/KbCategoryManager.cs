@@ -46,7 +46,7 @@ public class KbCategoryManager : IKbCategoryService
     public async Task<KbCategoryResponseDto> UpdateAsync(KbCategoryUpdateDto dto)
     {
         var category = await _categoryRepository.GetByIdAsync(dto.Id);
-        if (category == null) throw new Exception("Kategori bulunamadı.");
+        if (category == null) throw new AppException("Kategori bulunamadı.");
 
         _mapper.Map(dto, category);
         

@@ -23,6 +23,12 @@ public class MapProfile : Profile
         CreateMap<TicketUpdateDto, Ticket>()
             .ForMember(dest => dest.Id, opt => opt.Ignore());
 
+        // Devices
+        CreateMap<Device, ITServiceDesk.Service.DTOs.Devices.DeviceDto>()
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+            .ForMember(dest => dest.DepartmentName, opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : null))
+            .ForMember(dest => dest.AssignedUserName, opt => opt.MapFrom(src => src.AssignedUser != null ? src.AssignedUser.FirstName + " " + src.AssignedUser.LastName : null));
+
         // Departments
         CreateMap<Department, DepartmentResponseDto>();
         CreateMap<DepartmentCreateDto, Department>();

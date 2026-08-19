@@ -13,47 +13,50 @@ namespace ITServiceDesk.API.Controllers;
 public class CommentsController : ControllerBase
 {
     private readonly ICommentService _service;
-    public CommentsController(ICommentService service) => _service = service;
+    private readonly IUserContextService _userContext;
+    
+    public CommentsController(ICommentService service, IUserContextService userContext)
+    {
+        _service = service;
+        _userContext = userContext;
+    }
 
     [HttpGet("ticket/{ticketId}")]
     public async Task<IActionResult> GetByTicketId(Guid ticketId)
     {
-        bool isInternalViewer = User.IsInRole("Admin");
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        Guid.TryParse(userIdString, out Guid userId);
-
-        var result = await _service.GetAllByTicketIdAsync(ticketId, isInternalViewer, userId);
+        var result = await _service.GetAllByTicketIdAsync(ticketId, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         return Ok(ApiResponse<IEnumerable<CommentResponseDto>>.Success(result));
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(CommentCreateDto dto)
     {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (Guid.TryParse(userIdString, out Guid userId))
+        if (_userContext.UserId.HasValue)
         {
-            dto.UserId = userId;
+            dto.UserId = _userContext.UserId.Value;
         }
         else
         {
             return Unauthorized(ApiResponse<CommentResponseDto>.Fail("Kullanıcı kimliği alınamadı."));
         }
 
-        var result = await _service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         return Ok(ApiResponse<CommentResponseDto>.Success(result, "Yorum oluşturuldu."));
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, CommentUpdateDto dto)
     {
-        var result = await _service.UpdateAsync(id, dto);
+        var isAdmin = _userContext.UserRoles.Contains("Admin");
+        var result = await _service.UpdateAsync(id, dto, _userContext.UserId ?? Guid.Empty, isAdmin);
         return Ok(ApiResponse<CommentResponseDto>.Success(result, "Yorum güncellendi."));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _service.DeleteAsync(id);
+        var isAdmin = _userContext.UserRoles.Contains("Admin");
+        await _service.DeleteAsync(id, _userContext.UserId ?? Guid.Empty, isAdmin);
         return Ok(ApiResponse<bool>.Success(true, "Yorum silindi."));
     }
 }

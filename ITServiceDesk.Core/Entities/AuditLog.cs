@@ -6,6 +6,7 @@ public class AuditLog : BaseEntity
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public string? IPAddress { get; set; }
+    public string? EntityId { get; set; }
     
     // Navigation Properties
     public Guid? UserId { get; set; }

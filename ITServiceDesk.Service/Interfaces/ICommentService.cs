@@ -4,8 +4,8 @@ namespace ITServiceDesk.Service.Interfaces;
 
 public interface ICommentService
 {
-    Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId, bool isInternalViewer, Guid currentUserId);
-    Task<CommentResponseDto> CreateAsync(CommentCreateDto dto);
-    Task<CommentResponseDto> UpdateAsync(Guid id, CommentUpdateDto dto);
-    Task<bool> DeleteAsync(Guid id);
+    Task<IEnumerable<CommentResponseDto>> GetAllByTicketIdAsync(Guid ticketId, Guid currentUserId, IList<string> userRoles);
+    Task<CommentResponseDto> CreateAsync(CommentCreateDto dto, Guid currentUserId, IList<string> userRoles);
+    Task<CommentResponseDto> UpdateAsync(Guid id, CommentUpdateDto dto, Guid userId, bool isAdmin);
+    Task<bool> DeleteAsync(Guid id, Guid userId, bool isAdmin);
 }

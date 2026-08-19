@@ -27,5 +27,14 @@ public class TicketConfiguration : IEntityTypeConfiguration<Ticket>
             .WithMany(d => d.Tickets)
             .HasForeignKey(t => t.DepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes for performance optimization
+        builder.HasIndex(t => t.Status);
+        builder.HasIndex(t => t.Priority);
+        builder.HasIndex(t => t.AssigneeId);
+        builder.HasIndex(t => t.RequesterId);
+        builder.HasIndex(t => t.DepartmentId);
+        builder.HasIndex(t => t.DeviceId);
+        builder.HasIndex(t => t.CategoryId);
     }
 }

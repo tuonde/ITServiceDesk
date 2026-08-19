@@ -2,6 +2,27 @@ import api from './api';
 import type { LoginDto, RegisterDto, UserResponseDto } from '../types/auth';
 import type { ApiResponse } from '../types/api';
 
+const decodeBase64Utf8 = (base64Url: string): string => {
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const binString = atob(base64);
+    const bytes = new Uint8Array(binString.length);
+    for (let i = 0; i < binString.length; i++) {
+        bytes[i] = binString.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+};
+
+const getDecodedToken = (): any | null => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+        const payloadJson = decodeBase64Utf8(token.split('.')[1]);
+        return JSON.parse(payloadJson);
+    } catch (e) {
+        return null;
+    }
+};
+
 export const authService = {
     login: async (data: LoginDto): Promise<string> => {
         try {
@@ -40,17 +61,11 @@ export const authService = {
     },
 
     getUserRoles: (): string[] => {
-        const token = localStorage.getItem('token');
-        if (!token) return [];
-        try {
-            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
-            const payload = JSON.parse(payloadJson);
-            const roles = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
-            if (!roles) return [];
-            return Array.isArray(roles) ? roles : [roles];
-        } catch (e) {
-            return [];
-        }
+        const payload = getDecodedToken();
+        if (!payload) return [];
+        const roles = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role;
+        if (!roles) return [];
+        return Array.isArray(roles) ? roles : [roles];
     },
 
     isAdmin: (): boolean => {
@@ -67,50 +82,22 @@ export const authService = {
     },
 
     getUserId: (): string | null => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        try {
-            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
-            const payload = JSON.parse(payloadJson);
-            return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || payload.nameid || payload.sub || null;
-        } catch (e) {
-            return null;
-        }
+        const payload = getDecodedToken();
+        if (!payload) return null;
+        return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || payload.nameid || payload.sub || null;
     },
 
     getUserFirstName: (): string | null => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        try {
-            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
-            const payload = JSON.parse(payloadJson);
-            return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || payload.given_name || null;
-        } catch (e) {
-            return null;
-        }
+        const payload = getDecodedToken();
+        if (!payload) return null;
+        return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || payload.given_name || null;
     },
 
     getUserFullName: (): string | null => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        try {
-            const payloadJson = decodeBase64Utf8(token.split('.')[1]);
-            const payload = JSON.parse(payloadJson);
-            const firstName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || payload.given_name || '';
-            const lastName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] || payload.family_name || '';
-            return `${firstName} ${lastName}`.trim() || null;
-        } catch (e) {
-            return null;
-        }
+        const payload = getDecodedToken();
+        if (!payload) return null;
+        const firstName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || payload.given_name || '';
+        const lastName = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] || payload.family_name || '';
+        return `${firstName} ${lastName}`.trim() || null;
     }
-};
-
-const decodeBase64Utf8 = (base64Url: string): string => {
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const binString = atob(base64);
-    const bytes = new Uint8Array(binString.length);
-    for (let i = 0; i < binString.length; i++) {
-        bytes[i] = binString.charCodeAt(i);
-    }
-    return new TextDecoder('utf-8').decode(bytes);
 };

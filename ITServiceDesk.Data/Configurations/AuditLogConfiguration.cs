@@ -13,6 +13,7 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.OldValue).HasMaxLength(4000);
         builder.Property(a => a.NewValue).HasMaxLength(4000);
         builder.Property(a => a.IPAddress).HasMaxLength(50);
+        builder.Property(a => a.EntityId).HasMaxLength(50);
 
         builder.HasOne(a => a.User)
             .WithMany(u => u.AuditLogs)

@@ -25,7 +25,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(origin => true)
+        var frontendOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() 
+                              ?? new[] { "http://localhost:5173" }; // Default Vite port
+        
+        policy.WithOrigins(frontendOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -68,18 +71,32 @@ builder.Services.AddDbContext<ITServiceDeskDbContext>(options =>
 
 builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(options =>
 {
-    options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+
+    // Account Lockout Policy
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
 })
 .AddRoles<IdentityRole<Guid>>()
 .AddEntityFrameworkStores<ITServiceDeskDbContext>()
 .AddDefaultTokenProviders();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "ThisIsAVerySecretAndSecureKeyForITServiceDeskApplication";
+var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET") ?? jwtSettings["SecretKey"];
+
+if (builder.Environment.IsProduction() && (string.IsNullOrEmpty(secretKey) || secretKey == "[SECRET_KEY_PLACEHOLDER]"))
+{
+    throw new Exception("FATAL ERROR: JWT_SECRET environment variable is missing in Production environment.");
+}
+else if (string.IsNullOrEmpty(secretKey) || secretKey == "[SECRET_KEY_PLACEHOLDER]")
+{
+    secretKey = "DevelopmentSuperSecretKeyForLocalHost123456789!";
+}
 
 builder.Services.AddAuthentication(options =>
 {
@@ -133,7 +150,9 @@ builder.Services.AddScoped<IDeviceService, DeviceManager>();
 builder.Services.AddScoped<ITicketCategoryService, TicketCategoryManager>();
 builder.Services.AddScoped<IKbArticleService, KbArticleManager>();
 builder.Services.AddScoped<IKbCategoryService, KbCategoryManager>();
+builder.Services.AddScoped<IReportService, ReportManager>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserContextService, ITServiceDesk.API.Services.UserContextService>();
 
 // Background Workers
 builder.Services.AddHostedService<SlaEscalationWorker>();
@@ -177,6 +196,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ITServiceDesk.API.Middlewares.GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 

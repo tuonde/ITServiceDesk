@@ -41,9 +41,10 @@ registerLocale('tr', tr);
 interface TicketsProps {
   mode?: 'all' | 'my-tasks' | 'my-requests';
   onModeChange?: (mode: 'my-tasks' | 'my-requests') => void;
+  hideHeader?: boolean;
 }
 
-const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
+const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange, hideHeader = false }) => {
   const isAdmin = authService.isAdmin();
   const isTechnician = authService.isTechnician();
 
@@ -135,12 +136,19 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
   // Unread Messages State
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
 
+  const selectedTicketRef = React.useRef<TicketResponseDto | null>(null);
+  useEffect(() => {
+    selectedTicketRef.current = selectedTicket;
+  }, [selectedTicket]);
+
   useEffect(() => {
     loadTickets();
     loadDevices();
     loadCategories();
     loadAssignees();
+  }, [mode]);
 
+  useEffect(() => {
     const handleSignalREvent = (ticket: TicketResponseDto) => {
       const currentUserId = authService.getUserId();
       if (isAdmin || ticket.requesterId === currentUserId) {
@@ -149,7 +157,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
     };
 
     const handleCommentEvent = (data: { ticketId: string, message: string }) => {
-      if (selectedTicket?.id === data.ticketId) {
+      if (selectedTicketRef.current?.id === data.ticketId) {
         loadComments(data.ticketId);
         loadAttachments(data.ticketId);
       } else {
@@ -201,7 +209,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
       window.removeEventListener('open-ticket', handleOpenTicketEvent);
       window.removeEventListener('open-new-ticket', handleOpenNewTicketEvent);
     };
-  }, [selectedTicket, mode]);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (location.state?.openTicketId && tickets.length > 0) {
@@ -224,8 +232,9 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
     try {
       const data = await commentService.getByTicketId(ticketId);
       setComments(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Yorumlar yüklenemedi', err);
+      toast.error(err.response?.data?.message || 'Yorumlar yüklenirken bir hata oluştu.');
     }
   };
 
@@ -233,8 +242,9 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
     try {
       const data = await attachmentService.getByTicketId(ticketId);
       setAttachments(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Ekler yüklenemedi', err);
+      toast.error(err.response?.data?.message || 'Ekler yüklenirken bir hata oluştu.');
     }
   };
 
@@ -286,8 +296,10 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
     try {
       const response = await userService.getAll();
       if (response.data) {
-        // Sadece Admin veya Teknisyen olanları getir
-        const staff = response.data.filter(u => u.roles.includes('Admin') || u.roles.includes('Technician'));
+        // Sadece Admin veya Teknisyen olanları ve aktif olanları getir
+        const staff = response.data.filter(u => 
+          (u.roles.includes('Admin') || u.roles.includes('Technician')) && u.isActive === true
+        );
         setAssignees(staff);
       }
     } catch (err) {
@@ -444,6 +456,14 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedTicket || !e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
+    
+    const isValid = /\.(pdf|jpg|jpeg|png)$/i.test(file.name);
+    if (!isValid) {
+      toast.error('Geçersiz dosya türü. Sadece PDF, JPG, PNG yüklenebilir.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     try {
       setIsUploading(true);
       await attachmentService.upload({
@@ -689,46 +709,48 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
   return (
     <div className="flex flex-col h-full space-y-6">
 
-      <div className="shrink-0">
-        {(mode === 'my-tasks' || mode === 'my-requests') && onModeChange ? (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-6 border-b border-slate-200 w-full sm:w-auto">
-              <button
-                onClick={() => onModeChange('my-tasks')}
-                className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-tasks' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
-              >
-                Görevlerim
-              </button>
-              <button
-                onClick={() => onModeChange('my-requests')}
-                className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-requests' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
-              >
-                Taleplerim
-              </button>
+      {!hideHeader && (
+        <div className="shrink-0">
+          {(mode === 'my-tasks' || mode === 'my-requests') && onModeChange ? (
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-6 border-b border-slate-200 w-full sm:w-auto">
+                <button
+                  onClick={() => onModeChange('my-tasks')}
+                  className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-tasks' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                  Görevlerim
+                </button>
+                <button
+                  onClick={() => onModeChange('my-requests')}
+                  className={`pb-2 px-2 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${mode === 'my-requests' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                  Taleplerim
+                </button>
+              </div>
+              {!isAdmin && (
+                <Button
+                  onClick={() => setIsModalOpen(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Yeni Talep Aç
+                </Button>
+              )}
             </div>
-            {!isAdmin && (
-              <Button
-                onClick={() => setIsModalOpen(true)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                Yeni Talep Aç
-              </Button>
-            )}
-          </div>
-        ) : (
-          <PageHeader
-            title={mode === 'my-tasks' ? 'Üzerimdeki Talepler' : (isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim')}
-            description={mode === 'my-tasks' ? 'Üzerinizdeki talepleri filtreleyin, önceliklendirin ve çözüm süreçlerini yönetin.' : 'Talepleri filtreleyin, yönetin ve durumlarını takip edin.'}
-            action={!isAdmin ? {
-              label: "Yeni Talep Aç",
-              onClick: () => setIsModalOpen(true),
-              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            } : undefined}
-          />
-        )}
-      </div>
+          ) : (
+            <PageHeader
+              title={mode === 'my-tasks' ? 'Üzerimdeki Talepler' : (isAdmin ? 'Sistemdeki Tüm Destek Talepleri' : 'Tüm Destek Taleplerim')}
+              description={mode === 'my-tasks' ? 'Üzerinizdeki talepleri filtreleyin, önceliklendirin ve çözüm süreçlerini yönetin.' : 'Talepleri filtreleyin, yönetin ve durumlarını takip edin.'}
+              action={!isAdmin ? {
+                label: "Yeni Talep Aç",
+                onClick: () => setIsModalOpen(true),
+                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              } : undefined}
+            />
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 shrink-0">{error}</div>
@@ -1143,10 +1165,16 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                 <input
                   type="file"
                   multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
                   ref={newTicketFileInputRef}
                   onChange={(e) => {
                     if (e.target.files) {
-                      setNewTicketFiles(Array.from(e.target.files));
+                      const validFiles = Array.from(e.target.files).filter(file => {
+                        const isValid = /\.(pdf|jpg|jpeg|png)$/i.test(file.name);
+                        if (!isValid) toast.error(`${file.name} geçerli bir dosya türü değil. Sadece PDF, JPG, PNG yüklenebilir.`);
+                        return isValid;
+                      });
+                      setNewTicketFiles(prev => [...prev, ...validFiles]);
                     }
                   }}
                   className="hidden"
@@ -1327,7 +1355,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                     <div>
                       {Number(selectedTicket.status) !== TicketStatus.Resolved && Number(selectedTicket.status) !== TicketStatus.Closed && (
                         <React.Fragment>
-                          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                          <input type="file" ref={fileInputRef} accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileUpload} className="hidden" />
                           <button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
@@ -1343,11 +1371,16 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                     <div className="flex flex-wrap gap-3">
                       {attachments.map(att => (
                         <div key={att.id} className="flex flex-col border border-slate-200 rounded-xl overflow-hidden hover:border-sky-300 transition-colors bg-white w-48">
-                          <a
-                            href={att.filePath}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-3 p-3 group"
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const toastId = toast.loading('İndiriliyor...');
+                              attachmentService.download(att.id, att.fileName)
+                                .then(() => toast.success('İndirme tamamlandı.', { id: toastId }))
+                                .catch(() => toast.error('İndirme başarısız veya yetkiniz yok.', { id: toastId }));
+                            }}
+                            className="flex items-center gap-3 p-3 group text-left"
                           >
                             <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
@@ -1356,7 +1389,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange }) => {
                               <span className="text-sm font-medium text-slate-700 truncate" title={att.fileName}>{att.fileName}</span>
                               <span className="text-xs text-slate-400">{(att.fileSize / 1024).toFixed(1)} KB</span>
                             </div>
-                          </a>
+                          </button>
                           <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                             <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>

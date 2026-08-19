@@ -1,19 +1,15 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { ticketService } from '../services/ticketService';
-import { TicketStatus, type TicketResponseDto } from '../types/ticket';
+import React, { useEffect, useState } from 'react';
+import { reportService } from '../services/reportService';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { userService } from '../services/userService';
-import { type UserListDto } from '../types/user';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 
 const Reports: React.FC = () => {
-  const [tickets, setTickets] = useState<TicketResponseDto[]>([]);
-  const [assignees, setAssignees] = useState<UserListDto[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -23,263 +19,14 @@ const Reports: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [ticketsRes, usersRes] = await Promise.all([
-        ticketService.getAll({ pageNumber: 1, pageSize: 1000 }),
-        userService.getAll()
-      ]);
-      if (ticketsRes.data) setTickets(ticketsRes.data);
-      if (usersRes.data) {
-        setAssignees(usersRes.data.filter((u: UserListDto) => u.roles.includes('Admin') || u.roles.includes('Technician')));
-      }
+      const data = await reportService.getDashboardMetrics();
+      setMetrics(data);
     } catch (error) {
       console.error("Error loading data for reports", error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const metrics = useMemo(() => {
-    if (!tickets.length) return null;
-
-    const resolvedTickets = tickets.filter(t => t.status === TicketStatus.Resolved || t.status === TicketStatus.Closed);
-    
-    // 1. Ortalama Çözüm Süresi
-    let totalResolutionMinutes = 0;
-    let resolvedWithDates = 0;
-    resolvedTickets.forEach(t => {
-      if (t.resolvedAt && t.createdAt) {
-        const diffMs = new Date(t.resolvedAt).getTime() - new Date(t.createdAt).getTime();
-        totalResolutionMinutes += diffMs / (1000 * 60);
-        resolvedWithDates++;
-      }
-    });
-    
-    let avgResString = "0 saniye";
-    if (resolvedWithDates > 0) {
-      const avgMins = Math.floor(totalResolutionMinutes / resolvedWithDates);
-      const avgSecs = Math.round((totalResolutionMinutes / resolvedWithDates) * 60);
-      
-      if (avgSecs < 60) {
-        avgResString = `${avgSecs} saniye`;
-      } else {
-        const days = Math.floor(avgMins / (24 * 60));
-        const hours = Math.floor((avgMins % (24 * 60)) / 60);
-        const mins = avgMins % 60;
-        
-        const parts = [];
-        if (days > 0) parts.push(`${days} gün`);
-        if (hours > 0) parts.push(`${hours} saat`);
-        if (mins > 0) parts.push(`${mins} dakika`);
-        
-        avgResString = parts.join(' ');
-      }
-    }
-
-    // 2. Haftanın En Sorunlu Departmanı
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const lastWeekTickets = tickets.filter(t => new Date(t.createdAt) >= sevenDaysAgo);
-    
-    const deptMap: Record<string, number> = {};
-    lastWeekTickets.forEach(t => {
-      const dept = t.departmentName || 'Belirtilmedi';
-      deptMap[dept] = (deptMap[dept] || 0) + 1;
-    });
-    let topDept = 'Yok';
-    let maxDeptTickets = 0;
-    Object.entries(deptMap).forEach(([dept, count]) => {
-      if (count > maxDeptTickets) {
-        maxDeptTickets = count;
-        topDept = dept;
-      }
-    });
-
-    // 3. SLA İhlal Oranı
-    let slaBreaches = 0;
-    tickets.forEach(t => {
-      if (t.isEscalated) {
-        slaBreaches++;
-      } else if (t.resolutionDueDate) {
-        const dueDate = new Date(t.resolutionDueDate).getTime();
-        const resolvedDate = t.resolvedAt ? new Date(t.resolvedAt).getTime() : new Date().getTime();
-        if (resolvedDate > dueDate) {
-          slaBreaches++;
-        }
-      }
-    });
-    const slaBreachPercent = tickets.length > 0 ? ((slaBreaches / tickets.length) * 100).toFixed(1) : '0';
-
-    // 4. Çözüm Oranı (Resolution Rate)
-    const resolutionRate = tickets.length > 0 ? ((resolvedTickets.length / tickets.length) * 100).toFixed(1) : '0';
-
-    return {
-      avgResString,
-      topDept,
-      maxDeptTickets,
-      slaBreachPercent,
-      resolutionRate
-    };
-  }, [tickets]);
-
-  // Chart 1: Departman Bazlı Çözüm Süresi
-  const departmentPerformance = useMemo(() => {
-    const map: Record<string, { totalHours: number, count: number }> = {};
-    tickets.forEach(t => {
-      if (t.status === TicketStatus.Resolved || t.status === TicketStatus.Closed) {
-        const name = t.departmentName || 'Belirtilmeyen';
-        const endStr = t.resolvedAt || new Date().toISOString();
-        if (endStr) {
-          const diffMs = new Date(endStr).getTime() - new Date(t.createdAt).getTime();
-          const hours = diffMs / (1000 * 60 * 60);
-          if (!map[name]) map[name] = { totalHours: 0, count: 0 };
-          map[name].totalHours += hours;
-          map[name].count++;
-        }
-      }
-    });
-    const result = Object.entries(map).map(([name, data]) => ({
-      name: name.length > 15 ? name.substring(0, 15) + '...' : name,
-      fullName: name,
-      'Ortalama Saat': parseFloat((data.totalHours / data.count).toFixed(1))
-    })).sort((a, b) => b['Ortalama Saat'] - a['Ortalama Saat']).slice(0, 10);
-    
-    return result;
-  }, [tickets]);
-
-  // Chart 2: 30 Günlük Trend
-  const trendData = useMemo(() => {
-    const map: Record<string, number> = {};
-    
-    // Initialize last 30 days
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      map[d.toISOString().split('T')[0]] = 0;
-    }
-
-    tickets.forEach(t => {
-      const dStr = new Date(t.createdAt).toISOString().split('T')[0];
-      if (map[dStr] !== undefined) {
-        map[dStr]++;
-      }
-    });
-
-    return Object.entries(map).map(([date, count]) => ({
-      date: new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
-      'Talep Sayısı': count
-    }));
-  }, [tickets]);
-
-  // Chart 3: SLA Durumu
-  const slaPieData = useMemo(() => {
-    let onTime = 0;
-    let delayed = 0;
-    let pending = 0;
-
-    tickets.forEach(t => {
-      if (t.status === TicketStatus.Resolved || t.status === TicketStatus.Closed) {
-        if (t.isEscalated || (t.resolutionDueDate && t.resolvedAt && new Date(t.resolvedAt) > new Date(t.resolutionDueDate))) {
-          delayed++;
-        } else {
-          onTime++;
-        }
-      } else {
-        if (t.isEscalated || (t.resolutionDueDate && new Date() > new Date(t.resolutionDueDate))) {
-          delayed++;
-        } else {
-          pending++;
-        }
-      }
-    });
-
-    return [
-      { name: 'Zamanında Çözülen', value: onTime, color: '#10b981' }, // emerald
-      { name: 'Geciken / İhlal', value: delayed, color: '#f43f5e' }, // rose
-      { name: 'Bekleyen (Süresi Var)', value: pending, color: '#3b82f6' } // blue
-    ];
-  }, [tickets]);
-
-  // Chart 4: Departmanlara Göre Talepler
-  const deptBarData = useMemo(() => {
-    const deptMap: Record<string, number> = {};
-    tickets.forEach(t => {
-      const deptName = t.departmentName || 'Belirtilmeyen';
-      deptMap[deptName] = (deptMap[deptName] || 0) + 1;
-    });
-    return Object.keys(deptMap).map(key => ({
-      name: key.length > 15 ? key.substring(0, 15) + '...' : key,
-      fullName: key,
-      count: deptMap[key]
-    })).sort((a, b) => b.count - a.count);
-  }, [tickets]);
-
-  // Chart 5: Teknisyen Performans (Ortalama Çözüm Süresi ve Çözülen Bilet)
-  const technicianPerformance = useMemo(() => {
-    const map: Record<string, { totalHours: number, count: number }> = {};
-    tickets.forEach(t => {
-      if ((t.status === TicketStatus.Resolved || t.status === TicketStatus.Closed) && t.assigneeName) {
-        const name = t.assigneeName;
-        const endStr = t.resolvedAt || new Date().toISOString();
-        if (endStr && t.createdAt) {
-          const diffMs = new Date(endStr).getTime() - new Date(t.createdAt).getTime();
-          const hours = diffMs / (1000 * 60 * 60);
-          if (!map[name]) map[name] = { totalHours: 0, count: 0 };
-          map[name].totalHours += hours;
-          map[name].count++;
-        }
-      }
-    });
-    return Object.entries(map).map(([name, data]) => ({
-      name: name,
-      'Ortalama Saat': parseFloat((data.totalHours / data.count).toFixed(1)),
-      'Çözülen Talep': data.count
-    })).sort((a, b) => a['Ortalama Saat'] - b['Ortalama Saat']).slice(0, 10);
-  }, [tickets]);
-
-  // Chart 8: Kategori Dağılımı
-  const categoryDistribution = useMemo(() => {
-    const map: Record<string, number> = {};
-    tickets.forEach(t => {
-      const catName = t.categoryName || 'Kategorisiz';
-      map[catName] = (map[catName] || 0) + 1;
-    });
-    
-    // Sort and give colors
-    const colors = ['#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#64748b', '#14b8a6', '#f43f5e'];
-    return Object.entries(map)
-      .map(([name, value], index) => ({
-        name,
-        value,
-        color: colors[index % colors.length]
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [tickets]);
-
-  // Chart 6: Maliyet Dağılımı (Departmana Göre)
-  const costByDepartment = useMemo(() => {
-    const map: Record<string, number> = {};
-    tickets.forEach(t => {
-      if (t.repairCost && t.repairCost > 0) {
-        const name = t.departmentName || 'Belirtilmeyen';
-        map[name] = (map[name] || 0) + t.repairCost;
-      }
-    });
-    return Object.entries(map).map(([name, cost]) => ({
-      name: name,
-      Maliyet: cost
-    })).sort((a, b) => b.Maliyet - a.Maliyet).slice(0, 10);
-  }, [tickets]);
-
-  // Chart 7: Workload Distribution
-  const workloadData = useMemo(() => {
-    return assignees.map(user => {
-      const activeTickets = tickets.filter(t => t.assigneeId === user.id && (t.status === TicketStatus.Open || t.status === TicketStatus.InProgress));
-      return {
-        name: `${user.firstName} ${user.lastName}`,
-        count: activeTickets.length
-      };
-    }).sort((a, b) => b.count - a.count);
-  }, [tickets, assignees]);
 
   return (
     <div className="space-y-6">
@@ -339,7 +86,7 @@ const Reports: React.FC = () => {
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={metrics.trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
@@ -347,13 +94,20 @@ const Reports: React.FC = () => {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 11, fill: '#64748b' }} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickFormatter={(value) => new Date(value as any).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                      />
                       <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} allowDecimals={false} />
                       <RechartsTooltip 
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                        labelFormatter={(value) => new Date(value as any).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                       />
-                      <Area type="monotone" dataKey="Talep Sayısı" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                      <Area type="monotone" dataKey="talepSayisi" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" name="Talep Sayısı" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -368,7 +122,7 @@ const Reports: React.FC = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={slaPieData}
+                        data={metrics.slaPieData}
                         cx="50%"
                         cy="45%"
                         innerRadius={60}
@@ -376,7 +130,7 @@ const Reports: React.FC = () => {
                         paddingAngle={5}
                         dataKey="value"
                       >
-                        {slaPieData.map((entry, index) => (
+                        {metrics.slaPieData.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -399,11 +153,11 @@ const Reports: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-800">Departman Bazlı Ortalama Çözüm Süresi (Saat)</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
-                  {departmentPerformance.length === 0 ? (
+                  {!metrics.departmentPerformance || metrics.departmentPerformance.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor (Çözülmüş talep yok)</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={departmentPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={metrics.departmentPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
@@ -412,12 +166,12 @@ const Reports: React.FC = () => {
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                           labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
                           labelFormatter={(label) => {
-                             const item = departmentPerformance.find(d => d.name === label);
+                             const item = metrics.departmentPerformance.find((d: any) => d.name === label);
                              return item ? item.fullName : label;
                           }}
                         />
-                        <Bar dataKey="Ortalama Saat" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                          {departmentPerformance.map((_, index) => (
+                        <Bar dataKey="ortalamaSaat" name="Ortalama Saat" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                          {metrics.departmentPerformance.map((_: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#6366f1'} />
                           ))}
                         </Bar>
@@ -433,11 +187,11 @@ const Reports: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-800">Departmanlara Göre Talepler</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
-                  {deptBarData.length === 0 ? (
+                  {!metrics.deptBarData || metrics.deptBarData.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={deptBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={metrics.deptBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -447,12 +201,12 @@ const Reports: React.FC = () => {
                           labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
                           formatter={(value: any) => [value, 'Talep Sayısı']}
                           labelFormatter={(label) => {
-                             const item = deptBarData.find(d => d.name === label);
+                             const item = metrics.deptBarData.find((d: any) => d.name === label);
                              return item ? item.fullName : label;
                           }}
                         />
                         <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                          {deptBarData.map((_, index) => (
+                          {metrics.deptBarData.map((_: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
                           ))}
                         </Bar>
@@ -468,11 +222,11 @@ const Reports: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-800">İş Yükü Dağılımı (Açık ve İşlemdeki Talepler)</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
-                  {workloadData.length === 0 ? (
+                  {!metrics.workloadData || metrics.workloadData.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={workloadData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={metrics.workloadData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -483,7 +237,7 @@ const Reports: React.FC = () => {
                           formatter={(value: any) => [value, 'Aktif Talep']}
                         />
                         <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                          {workloadData.map((_, index) => (
+                          {metrics.workloadData.map((_: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#6366f1' : '#818cf8'} />
                           ))}
                         </Bar>
@@ -499,11 +253,11 @@ const Reports: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-800">Teknisyen Performansı (Ortalama Çözüm Süresi ve Çözülen Talep)</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
-                  {technicianPerformance.length === 0 ? (
+                  {!metrics.technicianPerformance || metrics.technicianPerformance.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={technicianPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={metrics.technicianPerformance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
@@ -514,8 +268,8 @@ const Reports: React.FC = () => {
                           labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
                         />
                         <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                        <Bar yAxisId="left" dataKey="Ortalama Saat" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                        <Bar yAxisId="right" dataKey="Çözülen Talep" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <Bar yAxisId="left" dataKey="ortalamaSaat" name="Ortalama Saat" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <Bar yAxisId="right" dataKey="cozulenTalep" name="Çözülen Talep" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -528,13 +282,13 @@ const Reports: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-800">Talep Kategori Dağılımı</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
-                  {categoryDistribution.length === 0 ? (
+                  {!metrics.categoryDistribution || metrics.categoryDistribution.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={categoryDistribution}
+                          data={metrics.categoryDistribution}
                           cx="50%"
                           cy="50%"
                           outerRadius={100}
@@ -543,7 +297,7 @@ const Reports: React.FC = () => {
                           label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
                           labelLine={false}
                         >
-                          {categoryDistribution.map((entry, index) => (
+                          {metrics.categoryDistribution.map((entry: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
@@ -563,11 +317,11 @@ const Reports: React.FC = () => {
                   <h3 className="text-base font-bold text-slate-800">Departmanlara Göre Maliyet Dağılımı (₺)</h3>
                 </CardHeader>
                 <CardContent className="h-[300px] pt-0">
-                  {costByDepartment.length === 0 ? (
+                  {!metrics.costByDepartment || metrics.costByDepartment.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">Veri bulunmuyor (Maliyet girişi yapılmamış)</div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={costByDepartment} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={metrics.costByDepartment} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
@@ -577,8 +331,8 @@ const Reports: React.FC = () => {
                           labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
                           formatter={(value: any) => [`₺${value}`, 'Maliyet']}
                         />
-                        <Bar dataKey="Maliyet" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                          {costByDepartment.map((_, index) => (
+                        <Bar dataKey="maliyet" name="Maliyet" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={60}>
+                          {metrics.costByDepartment.map((_: any, index: number) => (
                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#f59e0b' : '#fbbf24'} />
                           ))}
                         </Bar>

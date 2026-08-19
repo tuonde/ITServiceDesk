@@ -16,51 +16,41 @@ namespace ITServiceDesk.API.Controllers;
 public class TicketsController : ControllerBase
 {
     private readonly ITicketService _ticketService;
-    private readonly UserManager<AppUser> _userManager;
+    private readonly IUserContextService _userContext;
 
-    public TicketsController(ITicketService ticketService, UserManager<AppUser> userManager)
+    public TicketsController(ITicketService ticketService, IUserContextService userContext)
     {
         _ticketService = ticketService;
-        _userManager = userManager;
+        _userContext = userContext;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] TicketFilterDto filter)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        _ = Guid.TryParse(userIdClaim, out var userId);
-        
-        var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
-
-        var result = await _ticketService.GetAllAsync(filter, userId, userRoles);
+        var result = await _ticketService.GetAllAsync(filter, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         return Ok(result);
     }
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string keyword)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        _ = Guid.TryParse(userIdClaim, out var userId);
-        
-        var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
-
-        var result = await _ticketService.SearchAsync(keyword, userId, userRoles);
+        var result = await _ticketService.SearchAsync(keyword, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         return Ok(ApiResponse<IEnumerable<TicketSearchDto>>.Success(result));
     }
 
     [HttpGet("device/{deviceId}")]
     public async Task<IActionResult> GetByDeviceId(Guid deviceId)
     {
-        var result = await _ticketService.GetByDeviceIdAsync(deviceId);
+        var result = await _ticketService.GetByDeviceIdAsync(deviceId, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         return Ok(ApiResponse<IEnumerable<TicketResponseDto>>.Success(result));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var result = await _ticketService.GetByIdAsync(id);
+        var result = await _ticketService.GetByIdAsync(id, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         if (result == null)
-            return NotFound(ApiResponse<TicketResponseDto>.Fail("Ticket bulunamadı."));
+            return NotFound(ApiResponse<TicketResponseDto>.Fail("Ticket bulunamadı veya bu bileti görüntüleme yetkiniz yok."));
             
         return Ok(ApiResponse<TicketResponseDto>.Success(result));
     }
@@ -68,19 +58,9 @@ public class TicketsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(TicketCreateDto dto)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (Guid.TryParse(userIdClaim, out var userId))
+        if (_userContext.UserId.HasValue)
         {
-            dto.RequesterId = userId;
-            
-            if (dto.DepartmentId == null)
-            {
-                var user = await _userManager.FindByIdAsync(userIdClaim);
-                if (user != null)
-                {
-                    dto.DepartmentId = user.DepartmentId;
-                }
-            }
+            dto.RequesterId = _userContext.UserId.Value;
         }
 
         var result = await _ticketService.CreateAsync(dto);
@@ -93,49 +73,17 @@ public class TicketsController : ControllerBase
         if (id != dto.Id)
             return BadRequest(ApiResponse<TicketResponseDto>.Fail("ID uyuşmazlığı."));
 
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        _ = Guid.TryParse(userIdClaim, out var userId);
-        var isAdmin = User.IsInRole("Admin");
-        var isTechnician = User.IsInRole("Technician");
-
-        try
-        {
-            var existingTicket = await _ticketService.GetByIdAsync(id);
-            if (existingTicket == null)
-                return NotFound(ApiResponse<TicketResponseDto>.Fail("Ticket bulunamadı."));
-
-            if (!isAdmin)
-            {
-                // Teknisyense ve kendine atanmışsa izin ver
-                if (isTechnician && existingTicket.AssigneeId == userId)
-                {
-                    // izin verildi
-                }
-                else
-                {
-                    if (existingTicket.RequesterId != userId)
-                        return Forbid();
-                    if (existingTicket.Status != ITServiceDesk.Core.Enums.TicketStatus.Open)
-                        return BadRequest(ApiResponse<TicketResponseDto>.Fail("Sadece açık durumdaki biletleri güncelleyebilirsiniz."));
-                }
-            }
-
-            var result = await _ticketService.UpdateAsync(dto);
-            return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket güncellendi."));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<TicketResponseDto>.Fail($"Update failed: {ex.Message} - Inner: {ex.InnerException?.Message} - Trace: {ex.StackTrace}"));
-        }
+        var result = await _ticketService.UpdateAsync(dto, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
+        return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket güncellendi."));
     }
 
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var success = await _ticketService.DeleteAsync(id);
+        var success = await _ticketService.DeleteAsync(id, _userContext.UserId ?? Guid.Empty, _userContext.UserRoles);
         if (!success)
-            return NotFound(ApiResponse<bool>.Fail("Ticket bulunamadı."));
+            return NotFound(ApiResponse<bool>.Fail("Ticket bulunamadı veya silme yetkiniz yok."));
 
         return Ok(ApiResponse<bool>.Success(true, "Ticket silindi."));
     }
@@ -143,22 +91,10 @@ public class TicketsController : ControllerBase
     [HttpPost("{id}/reopen")]
     public async Task<IActionResult> Reopen(Guid id, [FromBody] TicketReopenDto dto)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdClaim, out var userId))
+        if (!_userContext.UserId.HasValue)
             return Unauthorized(ApiResponse<TicketResponseDto>.Fail("Geçersiz kullanıcı."));
 
-        try
-        {
-            var result = await _ticketService.ReopenAsync(id, dto, userId);
-            return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket yeniden açıldı."));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<TicketResponseDto>.Fail(ex.Message));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ApiResponse<TicketResponseDto>.Fail(ex.Message));
-        }
+        var result = await _ticketService.ReopenAsync(id, dto, _userContext.UserId.Value);
+        return Ok(ApiResponse<TicketResponseDto>.Success(result, "Ticket yeniden açıldı."));
     }
 }

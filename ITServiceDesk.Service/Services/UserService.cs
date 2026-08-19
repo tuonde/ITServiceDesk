@@ -94,7 +94,7 @@ public class UserService : IUserService
         if (!result.Succeeded)
         {
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new Exception($"Kullanıcı oluşturulamadı: {errors}");
+            throw new AppException($"Kullanıcı oluşturulamadı: {errors}");
         }
 
         // Role atama
@@ -103,7 +103,7 @@ public class UserService : IUserService
             await _userManager.AddToRoleAsync(user, dto.Role);
         }
 
-        var createdUser = await GetUserByIdAsync(user.Id) ?? throw new Exception("Kullanıcı oluşturuldu ancak getirilemedi.");
+        var createdUser = await GetUserByIdAsync(user.Id) ?? throw new AppException("Kullanıcı oluşturuldu ancak getirilemedi.");
         createdUser.GeneratedPassword = randomPassword;
         return createdUser;
     }
@@ -111,7 +111,7 @@ public class UserService : IUserService
     public async Task<UserListDto> UpdateUserAsync(Guid id, UserUpdateDto dto)
     {
         var user = await _userManager.FindByIdAsync(id.ToString());
-        if (user == null) throw new Exception("Kullanıcı bulunamadı.");
+        if (user == null) throw new AppException("Kullanıcı bulunamadı.");
 
         user.FirstName = dto.FirstName;
         user.LastName = dto.LastName;
@@ -124,7 +124,7 @@ public class UserService : IUserService
         var updateResult = await _userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
         {
-            throw new Exception("Kullanıcı güncellenemedi.");
+            throw new AppException("Kullanıcı güncellenemedi.");
         }
 
         // Mevcut rolleri al
@@ -137,7 +137,7 @@ public class UserService : IUserService
             await _userManager.AddToRoleAsync(user, dto.Role);
         }
 
-        return await GetUserByIdAsync(user.Id) ?? throw new Exception("Kullanıcı güncellendi ancak getirilemedi.");
+        return await GetUserByIdAsync(user.Id) ?? throw new AppException("Kullanıcı güncellendi ancak getirilemedi.");
     }
 
     public async Task<bool> ToggleUserStatusAsync(Guid id)
@@ -172,7 +172,7 @@ public class UserService : IUserService
     public async Task<UserListDto> UpdateProfileAsync(Guid userId, ITServiceDesk.Service.DTOs.Profile.ProfileUpdateDto dto)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) throw new Exception("Kullanıcı bulunamadı.");
+        if (user == null) throw new AppException("Kullanıcı bulunamadı.");
 
         user.FirstName = dto.FirstName;
         user.LastName = dto.LastName;
@@ -182,10 +182,10 @@ public class UserService : IUserService
         if (!updateResult.Succeeded)
         {
             var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-            throw new Exception($"Profil güncellenemedi: {errors}");
+            throw new AppException($"Profil güncellenemedi: {errors}");
         }
 
-        return await GetUserByIdAsync(user.Id) ?? throw new Exception("Profil güncellendi ancak getirilemedi.");
+        return await GetUserByIdAsync(user.Id) ?? throw new AppException("Profil güncellendi ancak getirilemedi.");
     }
 
     public async Task<bool> ChangePasswordAsync(Guid userId, ITServiceDesk.Service.DTOs.Profile.ChangePasswordDto dto)
@@ -196,16 +196,16 @@ public class UserService : IUserService
         var settings = await _settingsService.GetSettingsAsync();
 
         if (dto.NewPassword.Length < settings.PasswordMinLength)
-            throw new Exception($"Şifreniz en az {settings.PasswordMinLength} karakter olmalıdır.");
+            throw new AppException($"Şifreniz en az {settings.PasswordMinLength} karakter olmalıdır.");
             
         if (settings.PasswordRequireUppercase && !dto.NewPassword.Any(char.IsUpper))
-            throw new Exception("Şifreniz en az bir büyük harf içermelidir.");
+            throw new AppException("Şifreniz en az bir büyük harf içermelidir.");
 
         var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
         if (!result.Succeeded)
         {
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            throw new Exception($"Şifre değiştirilemedi: {errors}");
+            throw new AppException($"Şifre değiştirilemedi: {errors}");
         }
 
         return true;
