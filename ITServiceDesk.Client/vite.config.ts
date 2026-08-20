@@ -8,19 +8,19 @@ export default defineConfig({
     host: true, // Listen on all local IPs
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5014',
         changeOrigin: true
       },
       '/ticketHub': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5014',
         ws: true
       },
       '/notificationHub': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5014',
         ws: true
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5014',
         changeOrigin: true
       }
     }
