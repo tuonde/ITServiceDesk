@@ -189,6 +189,13 @@ using (var scope = app.Services.CreateScope())
             roleManager.CreateAsync(new IdentityRole<Guid>(role)).GetAwaiter().GetResult();
         }
     }
+
+    if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("DemoData:Enabled"))
+    {
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var seeder = new ITServiceDesk.Service.Seeders.DemoDataSeeder(context, userManager, roleManager);
+        seeder.SeedAsync().GetAwaiter().GetResult();
+    }
 }
 
 if (app.Environment.IsDevelopment())
