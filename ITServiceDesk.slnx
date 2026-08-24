@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/ITServiceDesk.UnitTests/ITServiceDesk.UnitTests.csproj" />
+  </Folder>
   <Project Path="ITServiceDesk.API/ITServiceDesk.API.csproj" />
   <Project Path="ITServiceDesk.Core/ITServiceDesk.Core.csproj" />
   <Project Path="ITServiceDesk.Data/ITServiceDesk.Data.csproj" />
