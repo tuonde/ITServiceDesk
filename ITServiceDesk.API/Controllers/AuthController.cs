@@ -2,11 +2,13 @@ using ITServiceDesk.Core.Wrappers;
 using ITServiceDesk.Service.DTOs.Auth;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ITServiceDesk.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("AuthPolicy")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _service;
