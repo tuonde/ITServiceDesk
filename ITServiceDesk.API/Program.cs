@@ -70,7 +70,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    options.AddPolicy("GeneralPolicy", context =>
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
@@ -260,14 +260,17 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     await next();
 });
-
+app.UseRouting();
 app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers().RequireRateLimiting("GeneralPolicy");
+app.MapControllers();
 app.MapHub<TicketHub>("/ticketHub");
 app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
+
+public partial class Program { }
+
