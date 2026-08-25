@@ -195,7 +195,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContextService, ITServiceDesk.API.Services.UserContextService>();
 
 // Background Workers
-builder.Services.AddHostedService<SlaEscalationWorker>();
+if (!builder.Environment.IsEnvironment("E2E"))
+{
+    builder.Services.AddHostedService<SlaEscalationWorker>();
+}
 
 // Mappings & Validations
 builder.Services.AddAutoMapper(config =>

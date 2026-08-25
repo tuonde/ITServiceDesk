@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { profileService } from '../services/profileService';
@@ -40,8 +40,8 @@ export default function Profile() {
         email: data.email,
         departmentName: data.departmentName
       });
-    } catch (err) {
-      toast.error('Profil bilgileri yüklenemedi.');
+    } catch {
+      toast.error('Profil bilgileri yÃ¼klenemedi.');
     } finally {
       setLoading(false);
     }
@@ -59,36 +59,36 @@ export default function Profile() {
         dataToSubmit.phoneNumber = '+90' + dataToSubmit.phoneNumber;
       }
       await profileService.updateProfile(dataToSubmit);
-      toast.success('Profil bilgileriniz güncellendi.');
+      toast.success('Profil bilgileriniz gÃ¼ncellendi.');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Profil güncellenemedi.');
+      toast.error(err.response?.data?.message || 'Profil gÃ¼ncellenemedi.');
     }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordData.newPassword !== confirmPassword) {
-      toast.error('Yeni şifreler eşleşmiyor.');
+      toast.error('Yeni ÅŸifreler eÅŸleÅŸmiyor.');
       return;
     }
 
     try {
       await profileService.changePassword(passwordData);
-      toast.success('Şifreniz başarıyla değiştirildi.');
+      toast.success('Åifreniz baÅŸarÄ±yla deÄŸiÅŸtirildi.');
       setPasswordData({ currentPassword: '', newPassword: '' });
       setConfirmPassword('');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Şifre değiştirilemedi.');
+      toast.error(err.response?.data?.message || 'Åifre deÄŸiÅŸtirilemedi.');
     }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
     
-    // Yalnızca rakamlara izin ver
+    // YalnÄ±zca rakamlara izin ver
     val = val.replace(/\D/g, '');
 
-    // En fazla 10 rakam (başında +90 sabit olduğu için)
+    // En fazla 10 rakam (baÅŸÄ±nda +90 sabit olduÄŸu iÃ§in)
     if (val.length > 10) {
       val = val.slice(0, 10);
     }
@@ -109,10 +109,10 @@ export default function Profile() {
       <div className={`border-b border-slate-100 flex flex-col bg-slate-50/50 ${isMobileResponsive ? 'p-4 sm:p-6' : 'p-6'}`}>
         <div>
           <div className="flex items-center gap-2 mb-2">
-              <Link to="/" className="text-emerald-600 hover:text-emerald-700 font-medium">← Ana Menü</Link>
+              <Link to="/" className="text-emerald-600 hover:text-emerald-700 font-medium">â† Ana MenÃ¼</Link>
           </div>
           <h2 className="text-xl font-bold text-slate-800">Profilim</h2>
-          <p className="text-sm text-slate-500 mt-1">Kişisel bilgilerinizi ve şifrenizi güncelleyin.</p>
+          <p className="text-sm text-slate-500 mt-1">KiÅŸisel bilgilerinizi ve ÅŸifrenizi gÃ¼ncelleyin.</p>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default function Profile() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
           
           <div className="flex flex-col">
-            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Kişisel Bilgiler</h3>
+            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">KiÅŸisel Bilgiler</h3>
             <form onSubmit={handleProfileSubmit} className="space-y-4">
               <Input label="E-posta (Sabit)" disabled value={readOnlyData.email || ''} />
               <Input label="Departman (Sabit)" disabled value={readOnlyData.departmentName || '-'} />
@@ -147,21 +147,21 @@ export default function Profile() {
               </div>
               <div className="pt-2">
                 <Button type="submit" variant="primary" className="w-full">
-                  Bilgilerimi Güncelle
+                  Bilgilerimi GÃ¼ncelle
                 </Button>
               </div>
             </form>
           </div>
 
           <div className="flex flex-col">
-            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Şifre Değiştir</h3>
+            <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Åifre DeÄŸiÅŸtir</h3>
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <Input label="Mevcut Şifre" type="password" required value={passwordData.currentPassword} onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })} />
-              <Input label="Yeni Şifre" type="password" required minLength={6} value={passwordData.newPassword} onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })} />
-              <Input label="Yeni Şifre (Tekrar)" type="password" required minLength={6} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              <Input label="Mevcut Åifre" type="password" required value={passwordData.currentPassword} onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })} />
+              <Input label="Yeni Åifre" type="password" required minLength={6} value={passwordData.newPassword} onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })} />
+              <Input label="Yeni Åifre (Tekrar)" type="password" required minLength={6} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
               <div className="pt-2">
                 <Button type="submit" variant="primary" className="w-full bg-blue-600 hover:bg-blue-700 focus:ring-blue-500/50">
-                  Şifremi Güncelle
+                  Åifremi GÃ¼ncelle
                 </Button>
               </div>
             </form>

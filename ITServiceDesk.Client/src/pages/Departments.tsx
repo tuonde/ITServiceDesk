@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { departmentService } from '../services/departmentService';
 import { userService } from '../services/userService';
@@ -34,14 +34,14 @@ export default function Departments() {
       if (deptRes.isSuccess && deptRes.data) {
         setDepartments(deptRes.data);
       } else {
-        toast.error(deptRes.message || 'Departmanlar yüklenirken bir hata oluştu.');
+        toast.error(deptRes.message || 'Departmanlar yÃ¼klenirken bir hata oluÅŸtu.');
       }
       
       if (userRes.isSuccess && userRes.data) {
         setUsers(userRes.data);
       }
-    } catch (err: any) {
-      toast.error('Veriler yüklenirken bir hata oluştu.');
+    } catch {
+      toast.error('Veriler yÃ¼klenirken bir hata oluÅŸtu.');
     } finally {
       setLoading(false);
     }
@@ -108,7 +108,7 @@ export default function Departments() {
     e.preventDefault();
     const nameTrimmed = formData.name.trim();
     if (!nameTrimmed) {
-      toast.error('Departman adı boş olamaz.');
+      toast.error('Departman adÄ± boÅŸ olamaz.');
       return;
     }
     try {
@@ -118,11 +118,11 @@ export default function Departments() {
           description: formData.description.trim()
         });
         if (res.isSuccess) {
-          toast.success(res.message || 'Departman güncellendi.');
+          toast.success(res.message || 'Departman gÃ¼ncellendi.');
           closeModal();
           loadData();
         } else {
-          toast.error(res.message || 'Departman güncellenemedi.');
+          toast.error(res.message || 'Departman gÃ¼ncellenemedi.');
         }
       } else {
         const res = await departmentService.create({
@@ -138,16 +138,16 @@ export default function Departments() {
         }
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'İşlem başarısız.');
+      toast.error(err.response?.data?.message || 'Ä°ÅŸlem baÅŸarÄ±sÄ±z.');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Bu departmanı silmek istediğinize emin misiniz?')) {
+    if (window.confirm('Bu departmanÄ± silmek istediÄŸinize emin misiniz?')) {
       try {
         const res = await departmentService.delete(id);
         if (res.isSuccess) {
-          toast.success(res.message || 'Departman başarıyla silindi.');
+          toast.success(res.message || 'Departman baÅŸarÄ±yla silindi.');
           loadData();
         } else {
           toast.error(res.message || 'Departman silinemedi.');
@@ -161,7 +161,7 @@ export default function Departments() {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto w-full space-y-6">
-        <PageHeader title="Departman Yönetimi" description="Sistemdeki departmanları ekleyin, düzenleyin veya silin." />
+        <PageHeader title="Departman YÃ¶netimi" description="Sistemdeki departmanlarÄ± ekleyin, dÃ¼zenleyin veya silin." />
         <Card>
           <TableSkeleton rows={5} />
         </Card>
@@ -172,8 +172,8 @@ export default function Departments() {
   return (
     <div className="max-w-5xl mx-auto w-full h-full flex flex-col space-y-6">
       <PageHeader 
-        title="Departman Yönetimi" 
-        description="Sistemdeki departmanları ekleyin, düzenleyin veya silin." 
+        title="Departman YÃ¶netimi" 
+        description="Sistemdeki departmanlarÄ± ekleyin, dÃ¼zenleyin veya silin." 
         action={isAdmin ? { label: "Yeni Departman", onClick: openAddModal } : undefined}
       />
 
@@ -183,13 +183,13 @@ export default function Departments() {
             <TableHeader>
               <TableRow>
                 <TableHead className="cursor-pointer group" onClick={() => handleSort('name')}>
-                  <div className="flex items-center gap-2">Departman Adı {renderSortIndicator('name')}</div>
+                  <div className="flex items-center gap-2">Departman AdÄ± {renderSortIndicator('name')}</div>
                 </TableHead>
-                <TableHead>Açıklama</TableHead>
+                <TableHead>AÃ§Ä±klama</TableHead>
                 <TableHead className="cursor-pointer group" onClick={() => handleSort('userCount')}>
                   <div className="flex items-center gap-2">Personel {renderSortIndicator('userCount')}</div>
                 </TableHead>
-                {isAdmin && <TableHead className="text-right">İşlemler</TableHead>}
+                {isAdmin && <TableHead className="text-right">Ä°ÅŸlemler</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -198,7 +198,7 @@ export default function Departments() {
                   <TableCell colSpan={isAdmin ? 4 : 3} className="h-64">
                     <EmptyState 
                       title="Departman Yok" 
-                      description="Sistemde henüz bir departman bulunmuyor." 
+                      description="Sistemde henÃ¼z bir departman bulunmuyor." 
                       action={isAdmin ? { label: "Yeni Departman Ekle", onClick: openAddModal } : undefined}
                     />
                   </TableCell>
@@ -213,7 +213,7 @@ export default function Departments() {
                       {dept.description || '-'}
                     </TableCell>
                     <TableCell className="text-slate-600 font-medium">
-                      {users.filter(u => u.departmentId === dept.id).length} Kişi
+                      {users.filter(u => u.departmentId === dept.id).length} KiÅŸi
                     </TableCell>
                     {isAdmin && (
                       <TableCell className="text-right">
@@ -222,7 +222,7 @@ export default function Departments() {
                             variant="ghost" 
                             size="sm" 
                             onClick={() => openEditModal(dept)} 
-                            title="Düzenle"
+                            title="DÃ¼zenle"
                             className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -248,28 +248,28 @@ export default function Departments() {
       </Card>
 
       <Modal isOpen={isModalOpen} onClose={closeModal}>
-        <ModalHeader title={editingId ? 'Departman Düzenle' : 'Yeni Departman Ekle'} onClose={closeModal} />
+        <ModalHeader title={editingId ? 'Departman DÃ¼zenle' : 'Yeni Departman Ekle'} onClose={closeModal} />
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <ModalContent className="space-y-4">
             <Input 
-              label="Departman Adı"
+              label="Departman AdÄ±"
               required 
               maxLength={100} 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})} 
-              placeholder="Örn: Bilgi İşlem" 
+              placeholder="Ã–rn: Bilgi Ä°ÅŸlem" 
             />
             <Textarea 
-              label="Açıklama"
+              label="AÃ§Ä±klama"
               maxLength={500} 
               value={formData.description} 
               onChange={e => setFormData({...formData, description: e.target.value})} 
-              placeholder="Opsiyonel departman açıklaması..." 
+              placeholder="Opsiyonel departman aÃ§Ä±klamasÄ±..." 
             />
           </ModalContent>
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={closeModal}>İptal</Button>
-            <Button type="submit" variant="primary">{editingId ? 'Güncelle' : 'Ekle'}</Button>
+            <Button type="button" variant="ghost" onClick={closeModal}>Ä°ptal</Button>
+            <Button type="submit" variant="primary">{editingId ? 'GÃ¼ncelle' : 'Ekle'}</Button>
           </ModalFooter>
         </form>
       </Modal>

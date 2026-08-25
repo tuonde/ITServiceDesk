@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { kbCategoryService } from '../../services/kbCategoryService';
 import type { KbCategory, KbCategoryCreateDto, KbCategoryUpdateDto } from '../../types/knowledgeBase';
@@ -23,8 +23,8 @@ export const KbCategories: React.FC = () => {
             setLoading(true);
             const data = await kbCategoryService.getAll();
             setCategories(data.sort((a, b) => a.order - b.order));
-        } catch (error) {
-            toast.error("Kategoriler yüklenemedi.");
+        } catch {
+            toast.error("Kategoriler yÃ¼klenemedi.");
         } finally {
             setLoading(false);
         }
@@ -57,7 +57,7 @@ export const KbCategories: React.FC = () => {
             if (editingCategory) {
                 const dto: KbCategoryUpdateDto = { id: editingCategory.id, name, description, icon, order };
                 await kbCategoryService.update(editingCategory.id, dto);
-                toast.success("Kategori güncellendi.");
+                toast.success("Kategori gÃ¼ncellendi.");
             } else {
                 const dto: KbCategoryCreateDto = { name, description, icon, order };
                 await kbCategoryService.create(dto);
@@ -65,18 +65,18 @@ export const KbCategories: React.FC = () => {
             }
             setIsModalOpen(false);
             fetchCategories();
-        } catch (error) {
-            toast.error("Kategori kaydedilirken bir hata oluştu.");
+        } catch {
+            toast.error("Kategori kaydedilirken bir hata oluÅŸtu.");
         }
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (window.confirm(`"${name}" kategorisini silmek istediğinize emin misiniz?`)) {
+        if (window.confirm(`"${name}" kategorisini silmek istediÄŸinize emin misiniz?`)) {
             try {
                 await kbCategoryService.delete(id);
                 toast.success("Kategori silindi.");
                 fetchCategories();
-            } catch (error) {
+            } catch {
                 toast.error("Kategori silinemedi.");
             }
         }
@@ -87,10 +87,10 @@ export const KbCategories: React.FC = () => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
-                        <Link to="/kb-admin" className="text-emerald-600 hover:text-emerald-700 font-medium">← Bilgi Bankası</Link>
+                        <Link to="/kb-admin" className="text-emerald-600 hover:text-emerald-700 font-medium">â† Bilgi BankasÄ±</Link>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800">Kategori Yönetimi</h1>
-                    <p className="text-sm text-slate-500 mt-1">Bilgi bankası kategorilerini ekleyin veya düzenleyin.</p>
+                    <h1 className="text-2xl font-bold text-slate-800">Kategori YÃ¶netimi</h1>
+                    <p className="text-sm text-slate-500 mt-1">Bilgi bankasÄ± kategorilerini ekleyin veya dÃ¼zenleyin.</p>
                 </div>
                 <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 font-medium transition-colors shadow-sm flex items-center gap-2">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -100,15 +100,15 @@ export const KbCategories: React.FC = () => {
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-8 text-center text-slate-500">Yükleniyor...</div>
+                    <div className="p-8 text-center text-slate-500">YÃ¼kleniyor...</div>
                 ) : (
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">İkon</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Adı & Açıklama</th>
-                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Sıra</th>
-                                <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">İşlemler</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Ä°kon</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">AdÄ± & AÃ§Ä±klama</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">SÄ±ra</th>
+                                <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Ä°ÅŸlemler</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
@@ -130,7 +130,7 @@ export const KbCategories: React.FC = () => {
                                               variant="ghost" 
                                               size="sm" 
                                               onClick={() => handleOpenModal(category)}
-                                              title="Düzenle"
+                                              title="DÃ¼zenle"
                                               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                             >
                                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -150,7 +150,7 @@ export const KbCategories: React.FC = () => {
                             ))}
                             {categories.length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500">Henüz kategori bulunmuyor.</td>
+                                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500">HenÃ¼z kategori bulunmuyor.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -163,23 +163,23 @@ export const KbCategories: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <h3 className="text-lg font-bold text-slate-800">{editingCategory ? 'Kategoriyi Düzenle' : 'Yeni Kategori'}</h3>
+                            <h3 className="text-lg font-bold text-slate-800">{editingCategory ? 'Kategoriyi DÃ¼zenle' : 'Yeni Kategori'}</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
                         <form onSubmit={handleSave} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori Adı</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Kategori AdÄ±</label>
                                 <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Açıklama</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">AÃ§Ä±klama</label>
                                 <textarea required rows={2} value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"></textarea>
                             </div>
                             <div className="flex gap-4">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">İkon</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Ä°kon</label>
                                     <select value={icon} onChange={e => setIcon(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                                         {Object.keys(KB_ICONS).map(iconKey => (
                                             <option key={iconKey} value={iconKey}>{iconKey}</option>
@@ -187,13 +187,13 @@ export const KbCategories: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="w-24">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Sıra</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">SÄ±ra</label>
                                     <input type="number" required min="1" value={order} onChange={e => setOrder(parseInt(e.target.value))} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                                 </div>
                             </div>
                             <div className="pt-4 flex justify-end gap-3">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">
-                                    İptal
+                                    Ä°ptal
                                 </button>
                                 <button type="submit" className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 font-medium transition-colors">
                                     Kaydet
