@@ -1,4 +1,7 @@
 # IT Service Desk
+
+[![CI](https://github.com/tuonde/ITServiceDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/tuonde/ITServiceDesk/actions/workflows/ci.yml)
+
 ## Personel Arıza Bildirim ve Çözüm Takip Sistemi
 
 Çalışanların teknik arızaları bildirebildiği, BT ekibinin talepleri yönettiği, teknisyenlerin kendilerine atanmış işleri takip ettiği, envanter, SLA, bildirim ve bilgi bankası özelliklerini içeren web tabanlı bir servis yönetim uygulaması. Bu proje, bir bilgisayar mühendisliği staj çalışması kapsamında geliştirilmiştir.
@@ -273,12 +276,25 @@ npm run build
 - **Dosya Yükleme:** Yüklenen dosyalar güvenli uzantı listesi (whitelist) ve magic byte/MIME içeriği analizi ile denetlenir. Yalnızca zararsız formattaki (.jpg, .pdf, .docx vb.) eklerin yüklenmesine izin verilir.
 - **Parola İlkesi:** Kompleks parolalar ve başarısız denemelerde account lockout (hesap kilidi) geçerlidir.
 
+## Test ve CI
+
+Proje genelinde toplam **71** adet otomatik test bulunmaktadır:
+- **24** Backend Unit Test
+- **35** Backend API/SQL Integration Test
+- **10** Frontend React Testing Library (RTL) Testi
+- **2** Playwright E2E Testi (Kritik İş Akışları)
+
+GitHub Actions CI altyapısı her push ve pull request işleminde:
+- Backend build ve testlerini,
+- Frontend lint, test ve build aşamalarını,
+- Playwright E2E uçtan uca senaryolarını otomatik olarak doğrular.
+
 ## Bilinen Sınırlamalar (Technical Debt)
 
 - Mevcut yapıda JWT Access Token frontend'de (istemcide) `localStorage` içerisinde tutulmaktadır.
-- Projede tam kapsamlı (automated) unit ve integration test projeleri mevcut değildir.
 - Geliştirme süreci boyunca çeşitli sayfalarda frontend lint veya Vite bundle size (boyut) uyarıları mevcuttur. Kodun çalışmasını engellemezler.
 - Backend kodlarında bazı warning (örneğin olası null referans) uyarıları çıkabilmektedir.
+- GitHub Actions süreçlerinde bağımlılıklara dair bazı Node deprecation uyarıları gözlemlenebilmektedir, ancak CI/CD bloklanmaz.
 
 ## Sorun Giderme (Troubleshooting)
 
