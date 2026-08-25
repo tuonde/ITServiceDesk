@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { signalrService } from '../services/signalrService';
@@ -64,6 +64,7 @@ const MainLayout: React.FC = () => {
   const [currentTime, setCurrentTime] = React.useState(new Date());
   const notifRef = React.useRef<HTMLDivElement>(null);
   const searchRef = React.useRef<HTMLDivElement>(null);
+  const notifTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -74,7 +75,10 @@ const MainLayout: React.FC = () => {
 
   React.useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -361,7 +365,7 @@ const MainLayout: React.FC = () => {
                             setIsNotifOpen(false);
                             if (notif.relatedTicketId) {
                               navigate(`/tickets`);
-                              setTimeout(() => window.dispatchEvent(new CustomEvent('open-ticket', { detail: notif.relatedTicketId })), 100);
+                              notifTimerRef.current = setTimeout(() => window.dispatchEvent(new CustomEvent('open-ticket', { detail: notif.relatedTicketId })), 100);
                             }
                           }}
                         >
