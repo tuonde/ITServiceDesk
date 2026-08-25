@@ -22,7 +22,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     public CustomWebApplicationFactory()
     {
-        _dbContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
+        _dbContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04")
             .WithPassword("TestStr0ngP@ssw0rd123!")
             .Build();
     }

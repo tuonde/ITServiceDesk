@@ -72,7 +72,7 @@ async function run() {
   try {
     // 2. Start SQL Server
     console.log('Starting SQL Server container...');
-    execSync(`docker run -d --name ${SQL_CONTAINER_NAME} -p 1433:1433 -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Test!E2E!Password123" mcr.microsoft.com/mssql/server:2022-latest`, { stdio: 'inherit' });
+    execSync(`docker run -d --name ${SQL_CONTAINER_NAME} -p 1433:1433 -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Test!E2E!Password123" mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04`, { stdio: 'inherit' });
     
     // Connection string
     const connectionString = 'Server=localhost,1433;Database=ITServiceDesk_E2E;User Id=sa;Password=Test!E2E!Password123;TrustServerCertificate=true;';
