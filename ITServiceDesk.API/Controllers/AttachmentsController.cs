@@ -3,6 +3,7 @@ using ITServiceDesk.Service.DTOs.Attachments;
 using ITServiceDesk.Service.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace ITServiceDesk.API.Controllers;
@@ -84,6 +85,7 @@ public class AttachmentsController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("UploadPolicy")]
     public async Task<IActionResult> Upload([FromForm] AttachmentCreateDto dto)
     {
         if (dto.TicketId.HasValue && !await IsUserAuthorizedForTicket(dto.TicketId.Value))

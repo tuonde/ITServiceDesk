@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace ITServiceDesk.Service.Services;
 
@@ -68,16 +69,6 @@ public class AuthManager : IAuthService
         if (existingUser != null)
             throw new AppException("Bu e-posta adresi zaten kullanımda.");
 
-        // Rollerin varlığını kontrol et ve yoksa oluştur
-        if (!await _roleManager.RoleExistsAsync("Admin"))
-            await _roleManager.CreateAsync(new IdentityRole<Guid>("Admin"));
-            
-        if (!await _roleManager.RoleExistsAsync("Technician"))
-            await _roleManager.CreateAsync(new IdentityRole<Guid>("Technician"));
-            
-        if (!await _roleManager.RoleExistsAsync("User"))
-            await _roleManager.CreateAsync(new IdentityRole<Guid>("User"));
-
         var user = new AppUser
         {
             UserName = dto.Email,
@@ -94,7 +85,7 @@ public class AuthManager : IAuthService
             throw new AppException($"Kayıt işlemi başarısız: {errors}");
         }
 
-        // Yeni kullanıcılara varsayılan olarak "User" rolünü ata
+        // FAZ 14.3.1 Security Remediation: Public registration always creates a normal User.
         await _userManager.AddToRoleAsync(user, "User");
 
         return new UserResponseDto

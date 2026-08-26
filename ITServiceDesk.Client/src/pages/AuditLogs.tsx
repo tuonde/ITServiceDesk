@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { auditLogService } from '../services/auditLogService';
 import type { AuditLogResponseDto } from '../types/auditLog';
 import { departmentService } from '../services/departmentService';
@@ -52,8 +52,8 @@ const AuditLogs: React.FC = () => {
         const total = Math.ceil(res.totalRecords / res.pageSize);
         setTotalPages(total > 0 ? total : 1);
       }
-    } catch (err: any) {
-      toast.error('Sistem logları yüklenirken bir hata oluştu.');
+    } catch {
+      toast.error('Sistem loglarÄ± yÃ¼klenirken bir hata oluÅŸtu.');
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +65,7 @@ const AuditLogs: React.FC = () => {
       if (dept) return dept.name;
     }
     if (typeof val === 'boolean') {
-      return val ? 'Evet' : 'Hayır';
+      return val ? 'Evet' : 'HayÄ±r';
     }
     return String(val);
   };
@@ -106,23 +106,23 @@ const AuditLogs: React.FC = () => {
     return (
       <Modal isOpen={!!selectedLog} onClose={() => setSelectedLog(null)} className="max-w-4xl">
         <ModalHeader 
-          title="Değişiklik Detayları" 
+          title="DeÄŸiÅŸiklik DetaylarÄ±" 
           onClose={() => setSelectedLog(null)} 
         />
         <ModalContent className="p-6 bg-slate-50/50">
           <div className="mb-4">
             <p className="text-sm text-slate-500">
-              {new Date(selectedLog.createdAt).toLocaleString('tr-TR')} - İşlem: <span className="font-bold text-slate-700">{selectedLog.action}</span>
+              {new Date(selectedLog.createdAt).toLocaleString('tr-TR')} - Ä°ÅŸlem: <span className="font-bold text-slate-700">{selectedLog.action}</span>
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Eski Değer */}
+            {/* Eski DeÄŸer */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
               <div className="px-4 py-3 border-b border-slate-100 bg-rose-50 flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-rose-100 text-rose-600 flex items-center justify-center">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <h4 className="font-bold text-rose-800 text-sm">Eski Değer</h4>
+                <h4 className="font-bold text-rose-800 text-sm">Eski DeÄŸer</h4>
               </div>
               <div className="p-0 text-sm flex-1 overflow-auto bg-white max-h-96">
                 {isObject(oldVal) ? (
@@ -142,13 +142,13 @@ const AuditLogs: React.FC = () => {
               </div>
             </div>
             
-            {/* Yeni Değer */}
+            {/* Yeni DeÄŸer */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
               <div className="px-4 py-3 border-b border-slate-100 bg-emerald-50 flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <h4 className="font-bold text-emerald-800 text-sm">Yeni Değer</h4>
+                <h4 className="font-bold text-emerald-800 text-sm">Yeni DeÄŸer</h4>
               </div>
               <div className="p-0 text-sm flex-1 overflow-auto bg-white max-h-96">
                 {isObject(newVal) ? (
@@ -182,15 +182,15 @@ const AuditLogs: React.FC = () => {
   return (
     <div className="space-y-6 h-full flex flex-col">
       <PageHeader 
-        title="Sistem Kayıtları (Audit Logs)" 
-        description="Sistemdeki tüm kayıt değişikliklerinin tarihsel kaydı." 
+        title="Sistem KayÄ±tlarÄ± (Audit Logs)" 
+        description="Sistemdeki tÃ¼m kayÄ±t deÄŸiÅŸikliklerinin tarihsel kaydÄ±." 
       />
 
       <Card className="flex flex-col flex-1 overflow-hidden min-h-[500px]">
         {/* Filters */}
         <div className="p-4 border-b border-slate-100 bg-white flex flex-wrap gap-4 items-end">
           <div className="flex flex-col gap-1.5 w-64">
-            <label className="text-sm font-semibold text-slate-700">Tarih Aralığı:</label>
+            <label className="text-sm font-semibold text-slate-700">Tarih AralÄ±ÄŸÄ±:</label>
             <div className="relative z-50">
               <DatePicker
                 selectsRange={true}
@@ -203,7 +203,7 @@ const AuditLogs: React.FC = () => {
                 isClearable={true}
                 calendarStartDay={1}
                 locale="tr"
-                placeholderText="Başlangıç - Bitiş seçiniz"
+                placeholderText="BaÅŸlangÄ±Ã§ - BitiÅŸ seÃ§iniz"
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm"
                 dateFormat="dd.MM.yyyy"
               />
@@ -212,16 +212,16 @@ const AuditLogs: React.FC = () => {
 
           <div className="w-56">
             <Select 
-              label="İşlem Tipi:"
+              label="Ä°ÅŸlem Tipi:"
               value={actionFilter}
               onChange={e => { setActionFilter(e.target.value); setPage(1); }}
             >
-              <option value="All">Tümü</option>
-              <option value="Create">Oluşturma (Create)</option>
-              <option value="Update">Güncelleme (Update)</option>
+              <option value="All">TÃ¼mÃ¼</option>
+              <option value="Create">OluÅŸturma (Create)</option>
+              <option value="Update">GÃ¼ncelleme (Update)</option>
               <option value="Delete">Silme (Delete)</option>
-              <option value="Login">Giriş (Login)</option>
-              <option value="ChangePassword">Şifre Değişimi (ChangePassword)</option>
+              <option value="Login">GiriÅŸ (Login)</option>
+              <option value="ChangePassword">Åifre DeÄŸiÅŸimi (ChangePassword)</option>
             </Select>
           </div>
           
@@ -245,18 +245,18 @@ const AuditLogs: React.FC = () => {
           ) : logs.length === 0 ? (
             <div className="h-full flex items-center justify-center p-6">
               <EmptyState 
-                title="Kayıt Bulunamadı"
-                description="Seçilen kriterlere uygun sistem günlüğü bulunamadı."
+                title="KayÄ±t BulunamadÄ±"
+                description="SeÃ§ilen kriterlere uygun sistem gÃ¼nlÃ¼ÄŸÃ¼ bulunamadÄ±."
               />
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Kullanıcı</TableHead>
+                  <TableHead>KullanÄ±cÄ±</TableHead>
                   <TableHead>Tarih</TableHead>
                   <TableHead>Aksiyon</TableHead>
-                  <TableHead className="text-right">İşlemler</TableHead>
+                  <TableHead className="text-right">Ä°ÅŸlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -304,7 +304,7 @@ const AuditLogs: React.FC = () => {
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
             >
-              Önceki
+              Ã–nceki
             </Button>
             <Button 
               variant="outline"

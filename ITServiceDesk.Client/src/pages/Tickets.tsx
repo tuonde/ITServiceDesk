@@ -584,7 +584,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange, hideHeade
       await Promise.allSettled(promises);
       setSelectedTicketIds([]);
       loadTickets();
-    } catch (err: any) {
+    } catch {
       alert('Toplu işlem sırasında bir hata oluştu.');
     } finally {
       setIsProcessingBulk(false);
@@ -970,6 +970,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange, hideHeade
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Durum Güncelle"
+                          aria-label="Durum Güncelle"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
@@ -987,6 +988,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange, hideHeade
                           }}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Düzenle"
+                          aria-label="Düzenle"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
@@ -1005,6 +1007,7 @@ const Tickets: React.FC<TicketsProps> = ({ mode = 'all', onModeChange, hideHeade
                           }}
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           title="Düzenle"
+                          aria-label="Düzenle"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </Button>

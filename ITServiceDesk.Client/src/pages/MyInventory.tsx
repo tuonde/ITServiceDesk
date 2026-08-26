@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deviceService } from '../services/deviceService';
 import { ticketService } from '../services/ticketService';
@@ -34,7 +34,7 @@ const MyInventory: React.FC = () => {
       setDevices(data);
     } catch (error) {
       console.error(error);
-      toast.error('Zimmet bilgileri yüklenemedi');
+      toast.error('Zimmet bilgileri yÃ¼klenemedi');
     } finally {
       setIsLoading(false);
     }
@@ -45,8 +45,8 @@ const MyInventory: React.FC = () => {
       setIsHistoryLoading(true);
       const res = await ticketService.getByDeviceId(deviceId);
       setDeviceHistory(res || []);
-    } catch (error) {
-      toast.error("Arıza geçmişi yüklenemedi");
+    } catch {
+      toast.error("ArÄ±za geÃ§miÅŸi yÃ¼klenemedi");
     } finally {
       setIsHistoryLoading(false);
     }
@@ -71,8 +71,8 @@ const MyInventory: React.FC = () => {
   const getStatusBadge = (status: DeviceStatus) => {
     switch (status) {
       case DeviceStatus.Active: return <Badge variant="emerald">Aktif</Badge>;
-      case DeviceStatus.Faulty: return <Badge variant="rose">Arızalı</Badge>;
-      case DeviceStatus.Maintenance: return <Badge variant="amber">Bakımda</Badge>;
+      case DeviceStatus.Faulty: return <Badge variant="rose">ArÄ±zalÄ±</Badge>;
+      case DeviceStatus.Maintenance: return <Badge variant="amber">BakÄ±mda</Badge>;
       case DeviceStatus.Storage: return <Badge variant="slate">Depoda</Badge>;
       default: return null;
     }
@@ -86,7 +86,7 @@ const MyInventory: React.FC = () => {
     if (name.includes('telefon') || name.includes('mobil')) {
       return <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>;
     }
-    if (name.includes('yazıcı') || name.includes('printer')) {
+    if (name.includes('yazÄ±cÄ±') || name.includes('printer')) {
       return <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>;
     }
     return <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
@@ -121,14 +121,14 @@ const MyInventory: React.FC = () => {
              className="w-full py-2.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
            >
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-             Geçmiş
+             GeÃ§miÅŸ
            </button>
            <button 
              onClick={() => reportIssue(device)}
              className="w-full py-2.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition-colors flex items-center justify-center gap-1.5 shadow-sm shadow-rose-100"
            >
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-             Arıza Bildir
+             ArÄ±za Bildir
            </button>
         </div>
       </div>
@@ -146,21 +146,21 @@ const MyInventory: React.FC = () => {
   return (
     <div className="space-y-8 animate-fade-in-up pb-8">
       
-      {/* Şahsi Zimmetler */}
+      {/* Åahsi Zimmetler */}
       <section>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm border border-emerald-200">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Üzerimdeki Cihazlar</h2>
-            <p className="text-sm text-slate-500 font-medium">Bana özel tahsis edilmiş donanımlar</p>
+            <h2 className="text-xl font-bold text-slate-800">Ãœzerimdeki Cihazlar</h2>
+            <p className="text-sm text-slate-500 font-medium">Bana Ã¶zel tahsis edilmiÅŸ donanÄ±mlar</p>
           </div>
         </div>
         
         {myDevices.length === 0 ? (
           <Card className="p-12">
-            <EmptyState title="Zimmet Bulunamadı" description="Üzerinize zimmetlenmiş bir cihaz bulunmuyor." />
+            <EmptyState title="Zimmet BulunamadÄ±" description="Ãœzerinize zimmetlenmiÅŸ bir cihaz bulunmuyor." />
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -171,21 +171,21 @@ const MyInventory: React.FC = () => {
 
       <div className="h-px bg-slate-200 w-full rounded-full"></div>
 
-      {/* Departman Cihazları */}
+      {/* Departman CihazlarÄ± */}
       <section>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm border border-indigo-200">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Departman Cihazları</h2>
-            <p className="text-sm text-slate-500 font-medium">Departmanınızın ortak kullanımındaki cihazlar</p>
+            <h2 className="text-xl font-bold text-slate-800">Departman CihazlarÄ±</h2>
+            <p className="text-sm text-slate-500 font-medium">DepartmanÄ±nÄ±zÄ±n ortak kullanÄ±mÄ±ndaki cihazlar</p>
           </div>
         </div>
         
         {departmentDevices.length === 0 ? (
           <Card className="p-12">
-            <EmptyState title="Cihaz Bulunamadı" description="Departmanınıza ait ortak bir cihaz bulunmuyor." />
+            <EmptyState title="Cihaz BulunamadÄ±" description="DepartmanÄ±nÄ±za ait ortak bir cihaz bulunmuyor." />
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -209,7 +209,7 @@ const MyInventory: React.FC = () => {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                 Arıza Geçmişi
+                 ArÄ±za GeÃ§miÅŸi
               </h2>
               <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -231,12 +231,12 @@ const MyInventory: React.FC = () => {
                 {isHistoryLoading ? (
                   <div className="text-center py-12 flex flex-col items-center justify-center">
                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mb-4"></div>
-                     <span className="text-slate-500 text-sm font-medium">Geçmiş yükleniyor...</span>
+                     <span className="text-slate-500 text-sm font-medium">GeÃ§miÅŸ yÃ¼kleniyor...</span>
                   </div>
                 ) : deviceHistory.length === 0 ? (
                   <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center">
                     <svg className="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                    <p className="text-slate-500 text-sm font-medium">Bu cihaza ait arıza kaydı bulunmuyor.</p>
+                    <p className="text-slate-500 text-sm font-medium">Bu cihaza ait arÄ±za kaydÄ± bulunmuyor.</p>
                   </div>
                 ) : (
                   <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
@@ -255,7 +255,7 @@ const MyInventory: React.FC = () => {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed
                               ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
                               }`}>
-                              {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? 'Çözüldü' : 'Açık'}
+                              {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? 'Ã‡Ã¶zÃ¼ldÃ¼' : 'AÃ§Ä±k'}
                             </span>
                             <span className="text-xs text-slate-400 font-medium">{new Date(ticket.createdAt).toLocaleDateString('tr-TR')}</span>
                           </div>
