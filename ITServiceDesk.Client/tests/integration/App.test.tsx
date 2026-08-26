@@ -26,8 +26,8 @@ vi.mock('../../src/pages/Tickets', () => ({ default: () => <div data-testid="tec
 vi.mock('../../src/pages/Dashboard', () => ({ default: () => <div data-testid="dashboard-page">Dashboard Page</div> }));
 vi.mock('../../src/pages/Login', () => ({ default: () => <div data-testid="login-page">Login Page</div> }));
 
-vi.mock('../../src/layouts/MainLayout', () => {
-  const ReactRouterDOM = require('react-router-dom');
+vi.mock('../../src/layouts/MainLayout', async () => {
+  const ReactRouterDOM = await vi.importActual('react-router-dom') as any;
   return {
     default: () => <div data-testid="main-layout"><ReactRouterDOM.Outlet /></div>
   };

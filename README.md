@@ -140,8 +140,10 @@ ITServiceDesk/
 
 ## Ön Koşullar
 
-Projeyi kendi bilgisayarınızda derleyip çalıştırabilmeniz için aşağıdaki araçların yüklü olması gerekir:
+**Docker ile Çalıştırmak İçin (Önerilen):**
+- Docker ve Docker Compose
 
+**Yerel Geliştirme (Local Development) İçin:**
 - Git
 - .NET 8 SDK (`dotnet --version` ile test edilebilir)
 - Node.js 18+ (`node --version` ile test edilebilir)
@@ -149,7 +151,7 @@ Projeyi kendi bilgisayarınızda derleyip çalıştırabilmeniz için aşağıda
 - SQL Server (Express veya Developer versiyonu, varsayılan instance olarak `.\SQLEXPRESS` tavsiye edilir)
 - EF Core CLI (`dotnet ef --version` ile test edilebilir)
 
-Eğer EF Core CLI bilgisayarınızda yüklü değilse, terminal (komut satırı) üzerinden aşağıdaki komut ile kurabilirsiniz:
+Eğer EF Core CLI bilgisayarınızda yüklü değilse, terminal üzerinden aşağıdaki komut ile kurabilirsiniz:
 ```powershell
 dotnet tool install --global dotnet-ef
 ```
@@ -165,7 +167,17 @@ git clone https://github.com/tuonde/ITServiceDesk.git
 cd ITServiceDesk
 ```
 
-### 2. Database'i Hazırlama
+### 2. Docker Compose ile Hızlı Kurulum (Production-Like)
+
+Uygulamayı ve SQL Server veritabanını izole konteynerler içerisinde hızlıca başlatmak için:
+```powershell
+docker-compose up -d --build
+```
+Bu komut, backend API (port 5014), SQL Server ve statik dosyaları yayınlayan frontend'i (port 5173 üzerinden backend'e hizmet vererek veya Nginx gibi ek bir sunucuyla) ayağa kaldıracaktır.
+
+*(Aşağıdaki adımlar projeyi Docker kullanmadan kendi bilgisayarınızda derleyip çalıştırmak içindir.)*
+
+### 3. Database'i Hazırlama (Local Development)
 
 Veritabanını oluşturmak ve tabloları kurmak (migration uygulamak) için aşağıdaki komutu çalıştırın:
 ```powershell
@@ -228,6 +240,18 @@ otomatik olarak oluşturulur.
 
 > **UYARI:** Bu hesaplar ve parola yalnızca local Development ve demo amacıyla kullanılmaktadır. Production (Canlı) ortamında demo seeding KESİNLİKLE devre dışıdır. Eğer bu demoyu devre dışı bırakmak isterseniz `ITServiceDesk.API/appsettings.json` içerisinde `DemoData:Enabled` değerini `false` yapabilirsiniz.
 
+### Production'da İlk Admin Hesabını Oluşturma (Bootstrap Admin)
+
+Production ortamlarında `DemoData` devre dışı olduğu için sistemde başlangıçta hiçbir kullanıcı bulunmaz. Public kayıt (Register) işlemi güvenlik gereği **daima normal `User`** hesabı oluşturur. İlk yetkili (Admin) hesabı oluşturmak için çevre değişkenleri (environment variables) üzerinden açık (explicit) bir konfigürasyon yapmanız gerekmektedir:
+
+```powershell
+$env:BootstrapAdmin__Enabled="true"
+$env:BootstrapAdmin__Email="admin@sirketdomain.com"
+$env:BootstrapAdmin__Password="CokGuvenliBirSifre123!"
+```
+
+Uygulama başlatıldığında bu e-posta adresiyle bir `Admin` kullanıcısı oluşturur (Idempotent). Hesaba erişim sağladıktan sonra güvenlik amacıyla bu ortam değişkenlerinin kaldırılması önerilir.
+
 ## Ortam Yapılandırması
 
 Uygulamanın davranışları bulunduğu ortama (Environment) göre değişiklik gösterir.
@@ -240,14 +264,18 @@ Uygulamanın davranışları bulunduğu ortama (Environment) göre değişiklik 
 ### Production / Release (Canlı Ortam)
 - `JWT_SECRET` (Şifreleme Anahtarı) ortam değişkeni üzerinden **kesinlikle sağlanmalıdır.** Aksi takdirde uygulama fail-closed (başlatma hatası) vererek kendini kapatır.
 - `DemoDataSeeder` KESİNLİKLE çalışmaz. Gerçek production verileri kullanılır.
-- Database Connection String dışarıdan override edilmelidir.
-- CORS politikaları `AllowedOrigins` konfigürasyonuna tabidir (Wildcard ile herkes yerine sadece belirlenen alan adlarına izin verir).
+- Database Connection String dışarıdan override edilmelidir. Veritabanı tabloları `Database:AutoMigrate=true` ile otomatik oluşturulur.
+- Proxy arkasındaysa `Proxy:ForwardedHeadersEnabled=true` ayarlanmalıdır.
 
-Bir PowerShell ekranında Production simülasyonu için örnek ortam değişkenleri şu şekildedir:
+Bir PowerShell ekranında (veya `docker-compose.yml` içerisinde) Production simülasyonu için örnek ortam değişkenleri şu şekildedir:
 ```powershell
 $env:JWT_SECRET="<en-az-32-karakter-uzunlugunda-rastgele-ve-cok-guvenli-gizli-anahtar>"
 $env:ConnectionStrings__DefaultConnection="Server=<IP_VEYA_SUNUCU>;Database=ITServiceDeskProdDb;User Id=<KULLANICI>;Password=<ŞİFRE>;TrustServerCertificate=True"
 $env:AllowedOrigins="https://sirketdomain.com,https://portal.sirketdomain.com"
+$env:Database__AutoMigrate="true"
+$env:Proxy__ForwardedHeadersEnabled="true"
+$env:Proxy__TrustedNetwork="172.18.0.0"
+$env:Proxy__PrefixLength="16"
 ```
 
 ## Release Build
@@ -278,9 +306,9 @@ npm run build
 
 ## Test ve CI
 
-Proje genelinde toplam **71** adet otomatik test bulunmaktadır:
+Proje genelinde toplam **73** adet otomatik test bulunmaktadır:
 - **24** Backend Unit Test
-- **35** Backend API/SQL Integration Test
+- **37** Backend API/SQL Integration Test
 - **10** Frontend React Testing Library (RTL) Testi
 - **2** Playwright E2E Testi (Kritik İş Akışları)
 

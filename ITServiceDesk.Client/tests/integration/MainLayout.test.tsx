@@ -1,4 +1,4 @@
-﻿import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -86,12 +86,13 @@ describe('Notification Behavior in MainLayout', () => {
       id: 'notif-1',
       message: 'Test ticket was updated.',
       isRead: false,
+      userId: 'user-1',
       relatedTicketId: 'ticket-1',
       createdAt: '2023-01-01T12:00:00Z',
     };
 
     vi.mocked(notificationService.getUnread).mockResolvedValueOnce([mockNotif]);
-    vi.mocked(notificationService.markAsRead).mockResolvedValueOnce();
+    vi.mocked(notificationService.markAsRead).mockResolvedValueOnce(mockNotif);
 
     renderLayout();
 

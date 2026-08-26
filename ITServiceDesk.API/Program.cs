@@ -17,6 +17,8 @@ using ITServiceDesk.Core.Entities;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using System.Net;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +65,28 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+if (builder.Configuration.GetValue<bool>("Proxy:ForwardedHeadersEnabled"))
+{
+    var trustedNetwork = builder.Configuration.GetValue<string>("Proxy:TrustedNetwork");
+    var prefixLength = builder.Configuration.GetValue<int?>("Proxy:PrefixLength");
+
+    if (string.IsNullOrWhiteSpace(trustedNetwork) || prefixLength == null)
+    {
+        throw new Exception("FATAL ERROR: Proxy:TrustedNetwork and Proxy:PrefixLength must be provided when Proxy:ForwardedHeadersEnabled is true.");
+    }
+
+    if (!IPAddress.TryParse(trustedNetwork, out var parsedNetwork))
+    {
+        throw new Exception($"FATAL ERROR: Invalid Proxy:TrustedNetwork '{trustedNetwork}'.");
+    }
+
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(parsedNetwork, prefixLength.Value));
+    });
+}
+
 builder.Services.AddMemoryCache();
 builder.Services.AddSignalR();
 
@@ -106,7 +130,13 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddDbContext<ITServiceDeskDbContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(15),
+            errorNumbersToAdd: null);
+    });
 });
 
 builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(options =>
@@ -212,6 +242,23 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ITServiceDeskDbContext>();
+
+    // FAZ 14.1 Config-controlled Migration
+    if (builder.Configuration.GetValue<bool>("Database:AutoMigrate"))
+    {
+        Console.WriteLine("AutoMigrate is enabled. Applying migrations...");
+        try
+        {
+            context.Database.Migrate();
+            Console.WriteLine("Migrations applied successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"FATAL ERROR: Failed to apply database migrations. {ex.Message}");
+            throw; // Fail the startup
+        }
+    }
+
     if (!context.TicketCategories.Any())
     {
         context.TicketCategories.AddRange(
@@ -233,9 +280,60 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("DemoData:Enabled"))
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+    // FAZ 14.3.1 - Explicit Config-Controlled Admin Bootstrap
+    if (builder.Configuration.GetValue<bool>("BootstrapAdmin:Enabled"))
     {
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var email = builder.Configuration.GetValue<string>("BootstrapAdmin:Email");
+        var password = builder.Configuration.GetValue<string>("BootstrapAdmin:Password");
+
+        if (!string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password))
+        {
+            var existingAdmin = userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+            if (existingAdmin == null)
+            {
+                var adminUser = new AppUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FirstName = "System",
+                    LastName = "Administrator"
+                };
+
+                var result = userManager.CreateAsync(adminUser, password).GetAwaiter().GetResult();
+                if (result.Succeeded)
+                {
+                    userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+                    Console.WriteLine($"Bootstrap Admin created successfully: {email}");
+                }
+                else
+                {
+                    Console.WriteLine($"Bootstrap Admin creation failed: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+            }
+            else
+            {
+                var rolesList = userManager.GetRolesAsync(existingAdmin).GetAwaiter().GetResult();
+                if (!rolesList.Contains("Admin"))
+                {
+                    userManager.AddToRoleAsync(existingAdmin, "Admin").GetAwaiter().GetResult();
+                    Console.WriteLine($"Bootstrap Admin elevated existing user: {email}");
+                }
+                else
+                {
+                    Console.WriteLine($"Bootstrap Admin already exists: {email}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("BootstrapAdmin is enabled but Email or Password is missing in configuration.");
+        }
+    }
+
+    if (builder.Configuration.GetValue<bool>("DemoData:Enabled"))
+    {
         var seeder = new ITServiceDesk.Service.Seeders.DemoDataSeeder(context, userManager, roleManager);
         seeder.SeedAsync().GetAwaiter().GetResult();
     }
@@ -255,6 +353,11 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseCors("AllowAll");
+
+if (builder.Configuration.GetValue<bool>("Proxy:ForwardedHeadersEnabled"))
+{
+    app.UseForwardedHeaders();
+}
 
 app.Use(async (context, next) =>
 {

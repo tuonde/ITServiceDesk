@@ -1,4 +1,4 @@
-﻿import { render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -128,7 +128,13 @@ describe('Ticket Creation', () => {
     } as any);
 
     // Make getById return the ticket with correct structure since Reopen uses it
-    vi.mocked(ticketService.reopen).mockResolvedValueOnce(undefined);
+    vi.mocked(ticketService.reopen).mockResolvedValueOnce({
+      id: 'ticket-2',
+      title: 'Closed Ticket',
+      status: 4,
+      createdAt: '2023-01-01',
+      priority: 0
+    } as any);
     vi.mocked(ticketService.getById).mockResolvedValueOnce({ 
       id: 'ticket-2', 
       title: 'Closed Ticket', 
