@@ -21,6 +21,12 @@ ENV ASPNETCORE_URLS=http://+:8080
 
 COPY --from=build /app/publish .
 
+# Install curl for health probes
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+
 # Create the uploads directory and set permissions for the 'app' user
 RUN mkdir -p /app/App_Data/uploads && \
     chown -R app:app /app/App_Data

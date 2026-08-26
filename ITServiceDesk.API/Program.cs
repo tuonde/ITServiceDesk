@@ -12,6 +12,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ITServiceDesk.Service.Hubs;
 using ITServiceDesk.Service.Workers;
+using Serilog;
+using Serilog.Events;
 using Microsoft.AspNetCore.Identity;
 using ITServiceDesk.Core.Entities;
 using Microsoft.OpenApi.Models;
@@ -19,8 +21,14 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -136,8 +144,11 @@ builder.Services.AddDbContext<ITServiceDeskDbContext>(options =>
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(15),
             errorNumbersToAdd: null);
-    });
 });
+});
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ITServiceDeskDbContext>("database", tags: new[] { "ready" });
 
 builder.Services.AddIdentity<AppUser, IdentityRole<Guid>>(options =>
 {
@@ -367,6 +378,27 @@ app.Use(async (context, next) =>
     await next();
 });
 app.UseRouting();
+
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    
+    options.GetLevel = (httpContext, elapsed, ex) =>
+    {
+        var path = httpContext.Request.Path.Value;
+        if (path != null && (path.StartsWith("/health/ready") || path.StartsWith("/health/live")))
+        {
+            return LogEventLevel.Debug;
+        }
+
+        if (ex != null || httpContext.Response.StatusCode > 499)
+        {
+            return LogEventLevel.Error;
+        }
+
+        return LogEventLevel.Information;
+    };
+});
 app.UseRateLimiter();
 
 app.UseAuthentication();
@@ -375,6 +407,16 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<TicketHub>("/ticketHub");
 app.MapHub<NotificationHub>("/notificationHub");
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+}).AllowAnonymous().DisableRateLimiting();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).AllowAnonymous().DisableRateLimiting();
 
 app.Run();
 
