@@ -4,30 +4,36 @@
 
 ## Genel Bakış
 
-**IT Service Desk**, kurumsal teknik destek süreçlerini ve arıza bildirimlerini yönetmek için tasarlanmış modern, çok katmanlı ve rol tabanlı bir servis yönetim (ITSM) web uygulamasıdır. 
+**IT Service Desk**, kurumsal teknik destek süreçlerini ve arıza bildirimlerini yönetmek için tasarlanmış çok katmanlı ve rol tabanlı bir servis yönetim (ITSM) web uygulamasıdır.
 
-Sistem; çalışanların donanım/yazılım arızalarını bildirebilmelerini, teknisyenlerin kendilerine atanan talepleri çözüme kavuşturabilmelerini ve yöneticilerin (Admin) tüm servis operasyonlarını, cihaz envanterini, SLA takibini, sistem ayarlarını ve denetim kayıtlarını merkezi olarak yönetebilmelerini sağlar.
+Sistem; çalışanların donanım ve yazılım arızalarını bildirebilmelerini, teknisyenlerin kendilerine atanan talepleri çözüme kavuşturabilmelerini ve yöneticilerin (Admin) servis operasyonlarını, cihaz envanterini, SLA takibini, sistem ayarlarını ve denetim kayıtlarını merkezi olarak yönetebilmelerini sağlar.
 
 ---
 
 ## Ekran Görüntüleri
 
 ### Admin Dashboard
+
 ![Admin Dashboard](docs/screenshots/admin-dashboard.png)
 
 ### Ticket Yönetimi
+
 ![Ticket Yönetimi](docs/screenshots/admin-tickets.png)
 
 ### Knowledge Base Yönetimi
+
 ![Knowledge Base Yönetimi](docs/screenshots/admin-knowledge-base.png)
 
 ### Teknisyen Görevleri
+
 ![Teknisyen Görevleri](docs/screenshots/technician-my-tasks.png)
 
 ### Zimmetlerim (Kullanıcı Envanteri)
+
 ![Zimmetlerim](docs/screenshots/user-my-inventory.png)
 
 ### Yardım Merkezi
+
 ![Yardım Merkezi](docs/screenshots/help-center.png)
 
 ---
@@ -38,12 +44,12 @@ Sistem; çalışanların donanım/yazılım arızalarını bildirebilmelerini, t
 |---|---|
 | **Ticket Yönetimi** | Öncelik, kategori, atama (assignee), durum akışları, yorumlaşma, dosya ekleme (attachment), talebi yeniden açma (reopen) ve çözüm geçmişi. |
 | **Rol Tabanlı Erişim** | Admin, Technician ve User rolleri; ASP.NET Identity ve claim/resource-based yetkilendirme altyapısı. |
-| **Envanter & Zimmet** | Donanım/cihaz tanımlama, personele cihaz zimmetleme, cihaz bazlı arıza geçmişi ve bilet-envanter entegrasyonu. |
+| **Envanter & Zimmet** | Donanım/cihaz tanımlama, personele cihaz zimmetleme, cihaz bazlı arıza geçmişi ve ticket-envanter entegrasyonu. |
 | **Canlı Bildirimler** | SignalR entegrasyonu ile anlık durum güncellemeleri ve kalıcı veritabanı bildirimleri. |
-| **Knowledge Base** | Kategori hiyerarşisi, zengin metin (HTML) makaleler, rol bazlı makale görünürlüğü ve personel yardım merkezi. |
-| **SLA & Eskalasyon** | Öncelik bazlı SLA yanıt/çözüm süreleri takibi, arkaplan çalışanı (Background Worker) ile otomatik SLA ihlal denetimi. |
+| **Knowledge Base** | Kategori yapısı, zengin metin (HTML) makaleler, rol bazlı makale görünürlüğü ve personel yardım merkezi. |
+| **SLA & Eskalasyon** | Öncelik bazlı SLA yanıt/çözüm süreleri takibi, arka plan çalışanı (Background Worker) ile otomatik SLA ihlal denetimi. |
 | **Raporlama & Audit** | Dashboard KPI metrikleri, teknisyen performans analizi, kategori dağılımları ve detaylı işlem denetim günlükleri (AuditLog). |
-| **Sistem Ayarları** | Güvenlik politikaları, dosya yükleme limitleri, SLA yapılandırması ve dinamik logo/tema yönetimi. |
+| **Sistem Ayarları** | Güvenlik politikaları, dosya yükleme limitleri, SLA yapılandırması ve dinamik logo yönetimi. |
 
 ---
 
@@ -53,38 +59,46 @@ Sistem; çalışanların donanım/yazılım arızalarını bildirebilmelerini, t
 |---|---|
 | **User (Kullanıcı)** | Kendi arıza bildirimlerini oluşturma ve takip etme, yorum/dosya ekleme, kapalı talebi yeniden açma, zimmetli cihazlarını listeleme ve yardım merkezinden yararlanma. |
 | **Technician (Teknisyen)** | Kendisine atanmış veya havuzdaki talepleri üstlenme, durum güncelleme (In Progress, Resolved vb.), teknik yorum ve ek yükleme, zimmet detaylarını inceleme. |
-| **Admin (Yönetici)** | Tüm bilet operasyonlarını yönetme, kullanıcı/departman/envanter yönetimi, sistem genel ayarları, SLA parametreleri, raporlar, KB yönetimi ve Audit Log inceleme. |
+| **Admin (Yönetici)** | Tüm ticket operasyonlarını yönetme, kullanıcı/departman/envanter yönetimi, sistem genel ayarları, SLA parametreleri, raporlar, Knowledge Base yönetimi ve Audit Log inceleme. |
 
 ---
 
 ## Kullanılan Teknolojiler
 
-- **Backend:**
-  - .NET 8 (C#) & ASP.NET Core Web API
-  - Entity Framework Core 8
-  - Microsoft SQL Server
-  - ASP.NET Core Identity & JWT Authentication
-  - SignalR (Real-time communication)
-  - AutoMapper, FluentValidation
-  - Serilog (Yapılandırılmış Console Loglama)
+### Backend
 
-- **Frontend:**
-  - React 19 & TypeScript
-  - Vite
-  - Tailwind CSS
-  - Axios, React Router, Recharts
-  - Lucide Icons, DOMPurify
+- .NET 8 (C#) & ASP.NET Core Web API
+- Entity Framework Core 8
+- Microsoft SQL Server
+- ASP.NET Core Identity & JWT Authentication
+- SignalR
+- AutoMapper
+- FluentValidation
+- Serilog
 
-- **Test Altyapısı:**
-  - **xUnit & Moq:** Backend birim testleri (Unit Tests)
-  - **WebApplicationFactory & Testcontainers:** Gerçek SQL Server ile API entegrasyon testleri (Integration Tests)
-  - **Vitest & React Testing Library:** Frontend bileşen ve entegrasyon testleri
-  - **Playwright:** Gerçek tarayıcı, API ve veritabanı üzerinde çalışan uçtan uca testler (E2E Tests)
+### Frontend
 
-- **Altyapı & Dağıtım:**
-  - Docker & Docker Compose
-  - Nginx (Reverse Proxy, Static Hosting, Security Headers)
-  - GitHub Actions (CI Pipeline)
+- React 19 & TypeScript
+- Vite
+- Tailwind CSS
+- Axios
+- React Router
+- Recharts
+- Lucide Icons
+- DOMPurify
+
+### Test Altyapısı
+
+- **xUnit & Moq:** Backend birim testleri
+- **WebApplicationFactory & Testcontainers:** Gerçek SQL Server ile API entegrasyon testleri
+- **Vitest & React Testing Library:** Frontend bileşen testleri
+- **Playwright:** Gerçek tarayıcı, API ve veritabanı üzerinde çalışan uçtan uca testler
+
+### Altyapı
+
+- Docker & Docker Compose
+- Nginx
+- GitHub Actions CI
 
 ---
 
@@ -94,7 +108,7 @@ Uygulama, sorumlulukların ayrıştırıldığı **Çok Katmanlı (N-Tier / Laye
 
 - **`ITServiceDesk.Core`:** Varlık modelleri (Entities), enumlar, DTO sözleşmeleri ve temel arayüzler (Interfaces).
 - **`ITServiceDesk.Data`:** `ITServiceDeskDbContext`, entity konfigürasyonları, EF Core migration'ları ve repository implementasyonları.
-- **`ITServiceDesk.Service`:** Temel iş mantığı (Business Logic), validasyonlar, servis katmanı, SLA hesaplayıcıları ve arkaplan işçileri (Background Workers).
+- **`ITServiceDesk.Service`:** Temel iş mantığı (Business Logic), validasyonlar, servis katmanı, SLA hesaplayıcıları ve arka plan işçileri.
 - **`ITServiceDesk.API`:** HTTP Controller uçları, middleware yapılandırmaları, SignalR hub'ları ve Dependency Injection tanımları.
 - **`ITServiceDesk.Client`:** Nginx üzerinde statik olarak sunulan React/TypeScript Single Page Application (SPA).
 
@@ -120,31 +134,33 @@ flowchart TD
     Browser -->|"HTTP :8080"| Frontend
     Frontend -->|"Statik Dosyalar & SPA Fallback"| Frontend
     Frontend -->|"Reverse Proxy /api/*"| API
-    Frontend -->|"WebSockets /ticketHub & /notificationHub"| API
+    Frontend -->|"SignalR /ticketHub & /notificationHub"| API
     API -->|"TCP / EF Core"| SQL
 
     classDef hostStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef proxyStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
     classDef dataStyle fill:#ede7f6,stroke:#512da8,stroke-width:2px;
-    
+
     class Host hostStyle;
     class ProxyNet proxyStyle;
     class DataNet dataStyle;
 ```
 
 ### İstek Akışı ve Ağ İzolasyonu
-1. **İstemci Erişimi:** Host makineden dış dünyaya açık olan tek port `8080` (Frontend Nginx) portudur.
-2. **Reverse Proxy:** Nginx, gelen `/api/*` isteklerini ve SignalR bağlantılarını iç ağ (`proxy-network`) üzerinden API konteynerine aktarır.
-3. **Ağ İzolasyonu (Network Segmentation):**
+
+1. **İstemci Erişimi:** Host makineye publish edilen tek uygulama portu `8080`'dir.
+2. **Reverse Proxy:** Nginx, gelen `/api/*` isteklerini ve SignalR bağlantılarını `proxy-network` üzerinden API konteynerine aktarır.
+3. **Ağ İzolasyonu:**
    - `proxy-network`: Frontend ve API konteynerleri arasındaki haberleşmeyi sağlar.
-   - `data-network`: Yalnızca API ve SQL Server konteynerleri arasındadır; Frontend konteynerinin SQL ağına doğrudan erişimi engellenmiştir.
-   - SQL Server ve API portları host makineye publish edilmez (dışarıya kapalıdır).
+   - `data-network`: Yalnızca API ve SQL Server konteynerleri arasındadır.
+   - Frontend konteynerinin SQL Server ağına doğrudan erişimi yoktur.
+   - SQL Server ve API portları host makineye publish edilmez.
 
 ---
 
 ## Veritabanı İlişki Şeması (ERD)
 
-Aşağıdaki şema, sistemin temel domain varlıklarını, ilişkilerini ve kardinalitelerini göstermektedir:
+Aşağıdaki şema sistemin temel domain varlıklarını, ilişkilerini ve kardinalitelerini göstermektedir:
 
 ```mermaid
 erDiagram
@@ -163,8 +179,8 @@ erDiagram
 
     TICKET_CATEGORY o|--o{ TICKET : "categorizes"
     DEVICE_CATEGORY ||--o{ DEVICE : "classifies"
-    DEVICE o|--o{ TICKET : "associated with"
 
+    DEVICE o|--o{ TICKET : "associated with"
     TICKET ||--o{ COMMENT : "contains"
     TICKET o|--o{ ATTACHMENT : "attached to"
     TICKET o|--o{ AUDIT_LOG : "tracks"
@@ -284,78 +300,149 @@ erDiagram
 ```
 
 > [!NOTE]
-> **Önemli Model Kısıtları:**
+> **Önemli Model Kısıtları**
+>
 > - `KbArticleFeedback`: Kullanıcı başına makale bazında tek geri bildirim kısıtı (`UNIQUE (ArticleId, UserId)`).
-> - `Ticket`: `RequesterId` zorunludur (`OnDelete: Restrict`); `AssigneeId`, `DepartmentId`, `CategoryId` ve `DeviceId` isteğe bağlıdır (nullable).
-> - `Attachment`: `Ticket`, `Comment` veya `KbArticle` ile ilişkilendirilebilen nullable foreign key (çoklu opsiyonel FK) alanları içerir.
-
+> - `Ticket`: `RequesterId` zorunludur (`OnDelete: Restrict`); `AssigneeId`, `DepartmentId`, `CategoryId` ve `DeviceId` isteğe bağlıdır.
+> - `Attachment`: `Ticket`, `Comment` veya `KbArticle` ile ilişkilendirilebilen nullable foreign key alanları içerir.
 
 ---
 
 ## Güvenlik Mimarisi
 
-- **Kimlik Doğrulama & Yetkilendirme:** JWT tabanlı Token Authentication, Claim/Role bazlı Authorization ve kaynak bazlı yetki denetimi (BOLA/IDOR koruması).
-- **Hız Sınırlaması (Rate Limiting):** Aşırı istek (request flooding) ve brute-force deneme risklerini sınırlandırmak amacıyla API genelinde fixed-window rate limiter aktiftir.
-- **Güvenlik Başlıkları:** Nginx ve API seviyesinde `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` ve `Referrer-Policy: strict-origin-when-cross-origin` başlıkları zorunludur.
-- **İçerik Güvenlik Politikası (CSP):** XSS risklerini sınırlandırmak ve kaynak yüklemelerini kısıtlamak amacıyla Nginx katmanında derinlemesine savunma (defense-in-depth) yaklaşımıyla Content Security Policy (`script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`) uygulanmıştır.
-- **Dosya Yükleme Koruması:**
-  - **Taşıma Tavanı (Nginx):** `client_max_body_size 12M` (Nginx transport ceiling 12M olarak API business limitinin biraz üzerinde tutulur).
-  - **İş Mantığı Sınırı (API):** Gerçek dosya boyutu kontrolü API seviyesinde maksimum 10 MB olarak doğrulanır ve sınırlandırılır.
-  - **İçerik Doğrulama:** Yalnızca izin verilen uzantılar (.pdf, .png, .jpg, .jpeg, .docx, .xlsx, .txt) ve dosya başlığı/magic-byte doğrulaması ile kabul edilir.
-- **Fail-Closed Secret Kontrolü:** Production ortamında güvenli bir `JWT_SECRET` tanımlanmadığı takdirde uygulama başlamayı reddeder.
-- **Geliştirici İzolasyonu:** Swagger UI yalnızca Development ortamında aktiftir; Production modunda devre dışı bırakılır.
+- **Kimlik Doğrulama & Yetkilendirme:** JWT tabanlı authentication, rol/claim tabanlı authorization ve kaynak bazlı erişim kontrolleri.
+- **BOLA / IDOR Kontrolleri:** Kullanıcıların yalnızca erişim yetkisine sahip oldukları kaynaklar üzerinde işlem yapabilmesi backend seviyesinde doğrulanır.
+- **Hız Sınırlaması (Rate Limiting):** Aşırı istek ve brute-force denemelerini sınırlandırmak amacıyla fixed-window rate limiter kullanılır.
+- **Güvenlik Başlıkları:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` ve `Referrer-Policy: strict-origin-when-cross-origin`.
+- **Content Security Policy:** Nginx üzerinde `script-src 'self'`, `frame-ancestors 'none'` ve `object-src 'none'` gibi kısıtlamalar uygulanır.
+- **Swagger İzolasyonu:** Swagger UI yalnızca Development ortamında aktiftir.
+
+### Dosya Yükleme Koruması
+
+- **Nginx taşıma sınırı:** `client_max_body_size 12M`
+- **API iş mantığı sınırı:** Maksimum 10 MB
+- **Dosya doğrulama:** İzin verilen uzantılar ve magic-byte/file signature kontrolleri birlikte uygulanır.
+- **Ticket ekleri:** `.pdf`, `.png`, `.jpg`, `.jpeg`, `.docx`, `.xlsx`, `.txt` formatları desteklenir.
+- **Özel logo yükleme:** Yalnızca Admin rolündeki kullanıcılar logo yükleyebilir.
+- Logo formatları `.png`, `.jpg`, `.jpeg` ve `.webp` ile sınırlandırılmıştır.
+- SVG logo desteği aktif içerik/XSS riskini azaltmak amacıyla desteklenmez.
+- Logo dosyalarının içeriği uzantıdan bağımsız olarak dosya imzası üzerinden doğrulanır.
+
+### Bootstrap Admin Güvenliği
+
+Temiz kurulumlarda ilk Admin hesabı açıkça tanımlanan BootstrapAdmin ayarları üzerinden oluşturulur.
+
+- Kullanıcı mevcut değilse yeni Admin hesabı oluşturulur.
+- Aynı hesap zaten Admin ise herhangi bir değişiklik yapılmaz.
+- Aynı e-posta normal bir kullanıcıya aitse kullanıcı otomatik olarak Admin'e yükseltilmez.
+- Bu durumda uygulama yetki yükseltme riskini önlemek amacıyla başlangıcı fail-closed şekilde durdurur.
+
+### Secret Yönetimi
+
+Production-like ortamda güvenli bir `JWT_SECRET` tanımlanmadığında uygulama başlamayı reddeder.
 
 > [!NOTE]
-> **Güvenlik Notları ve Kabul Edilen Sınırlamalar:**
-> - JWT Token istemci tarafında `localStorage` üzerinde saklanmaktadır (kabul edilmiş teknik borç).
-> - Yerel Docker Compose ortamı HTTP üzerinde çalışacak şekilde tasarlanmıştır. Gerçek canlı dağıtımda TLS (HTTPS) sonlandırması ve HSTS politikası en dıştaki ters vekil (Edge Proxy / Ingress) katmanında uygulanmalıdır.
+> **Güvenlik Notları ve Kabul Edilen Sınırlamalar**
+>
+> - JWT access token istemci tarafında `localStorage` üzerinde saklanmaktadır.
+> - Yerel Docker Compose ortamı HTTP üzerinde çalışmaktadır.
+> - Gerçek canlı dağıtımda TLS/HTTPS sonlandırması ve HSTS politikası en dış reverse proxy / ingress katmanında uygulanmalıdır.
 
 ---
 
-## Sağlık İzleme ve Gözlemlenebilirlik (Health & Observability)
+## Sağlık İzleme ve Gözlemlenebilirlik
 
-Sistem, konteyner orkestrasyonu ve çalışma zamanı sağlığı için iki ayrı health endpoint sunar:
+Sistem iki ayrı health endpoint sunmaktadır:
 
 - **`/health/live` (Liveness):** API sürecinin çalıştığını ve isteklere yanıt verebildiğini doğrular.
-- **`/health/ready` (Readiness):** API'nin yapılandırılmış readiness kontrollerini çalıştırır (Mevcut durumda SQL Server / DbContext bağlantısının hazır olup olmadığı doğrulanmaktadır).
+- **`/health/ready` (Readiness):** Yapılandırılmış readiness kontrollerini çalıştırır. Mevcut durumda SQL Server / DbContext bağlantısı kontrol edilmektedir.
 
 ### Konteyner Sağlık Kontrolleri
-- **SQL Server:** `sqlcmd` ile periyodik sorgulama.
-- **API:** `curl` ile `/health/ready` uç noktasını sorgular; Compose başlangıcında API container'ı SQL Server healthcheck'inin healthy olmasını bekler (`depends_on.condition: service_healthy`).
-- **Frontend:** `wget` ile Nginx servis durumunu sorgular; API hazır olmadan Frontend devreye girmez.
 
-### Yapılandırılmış Loglama (Structured Logging)
-- **Serilog:** Tüm loglar standart çıktıya (stdout/stderr) yapılandırılmış console çıktı formatında (`SourceContext`, `RequestId`, `ElapsedMilliseconds` özellikleri serialize edilerek) yazılır.
-- **Request Logging:** HTTP istek tamamlama olayları tek satırda loglanır. Health check ve polling istekleri log gürültüsünü önlemek amacıyla filtrelenmiştir.
+- **SQL Server:** `sqlcmd` ile periyodik kontrol.
+- **API:** `curl` ile `/health/ready` kontrolü.
+- **Frontend:** `wget` ile Nginx sağlık kontrolü.
+- API, SQL Server healthy duruma gelmeden başlamaz.
+- Frontend, API hazır olmadan devreye girmez.
+
+### Yapılandırılmış Loglama
+
+- **Serilog:** Loglar stdout/stderr üzerine yapılandırılmış console formatında yazılır.
+- `SourceContext`, `RequestId` ve `ElapsedMilliseconds` gibi bilgiler loglara eklenir.
+- HTTP istek tamamlanma olayları request logging ile kaydedilir.
+- Health check ve polling istekleri gereksiz log yoğunluğunu azaltmak amacıyla filtrelenir.
 
 ### Hassas Veri Loglama Politikası
-- Kimlik doğrulama anahtarları (JWT Secret), kullanıcı/SA şifreleri ve `Authorization` başlıkları log çıktılarına dahil edilmez.
+
+JWT secret, kullanıcı/SQL Server parolaları ve `Authorization` başlıkları log çıktılarına dahil edilmez.
 
 ---
 
 ## Test Altyapısı ve Kalite Güvencesi
 
-Projede **75** adet otomatikleştirilmiş test bulunmaktadır:
+Projede **78 otomatik test** bulunmaktadır:
 
 ```text
-[Toplam 75 Otomatik Test]
-├── 24 Backend Unit Tests (xUnit + Moq)
-├── 39 Backend API / SQL Integration Tests (Testcontainers MSSQL)
-├── 10 Frontend Component Tests (Vitest + React Testing Library)
-└──  2 E2E System Tests (Playwright - Gerçek Tarayıcı, API ve DB Akışı)
+[Toplam 78 Otomatik Test]
+
+├── 24 Backend Unit Tests
+│   └── xUnit + Moq
+│
+├── 42 Backend API / SQL Integration Tests
+│   └── WebApplicationFactory + Testcontainers MSSQL
+│
+├── 10 Frontend Component Tests
+│   └── Vitest + React Testing Library
+│
+└── 2 E2E System Tests
+    └── Playwright
 ```
 
-- **Entegrasyon Testleri:** Testcontainers ile geçici izole SQL Server konteyneri ayağa kaldırılarak gerçek migration ve sorgu doğrulaması yapılır.
-- **E2E Testleri:** Mock kullanılmadan; kullanıcı girişi, bilet oluşturma, teknisyen ataması, çözme ve yeniden açma yaşam döngüsü uçtan uca test edilir.
+### Backend Unit Testleri
+
+Temel servis davranışları ve iş kuralları dış bağımlılıklardan izole şekilde test edilir.
+
+### Entegrasyon Testleri
+
+`WebApplicationFactory` ile API test ortamında çalıştırılır.
+
+Testcontainers kullanılarak geçici ve izole bir SQL Server konteyneri oluşturulur. Böylece:
+
+- migration davranışları,
+- foreign key ilişkileri,
+- unique constraint'ler,
+- SQL Server'a özgü sorgu davranışları
+
+gerçek ilişkisel veritabanı üzerinde doğrulanabilir.
+
+BootstrapAdmin privilege escalation ve logo upload güvenliği için regression testleri de bu test katmanında bulunmaktadır.
+
+### Frontend Testleri
+
+Vitest ve React Testing Library kullanılarak form, bileşen ve temel kullanıcı etkileşimleri test edilir.
+
+### E2E Testleri
+
+Playwright ile gerçek tarayıcı, API ve SQL Server birlikte kullanılır.
+
+Kritik ticket yaşam döngüsünde:
+
+```text
+User → Admin → Technician → User
+```
+
+akışı uçtan uca doğrulanır.
 
 ### Test Komutları
 
-**Backend Testleri:**
+#### Backend
+
 ```powershell
 dotnet test -c Release
 ```
 
-**Frontend Testleri:**
+#### Frontend
+
 ```powershell
 cd ITServiceDesk.Client
 npm ci
@@ -364,7 +451,8 @@ npm run test:run
 npm run build
 ```
 
-**Uçtan Uca (E2E) Testleri:**
+#### E2E
+
 ```powershell
 cd ITServiceDesk.Client
 npm run e2e
@@ -372,130 +460,319 @@ npm run e2e
 
 ---
 
-## Sürekli Entegrasyon (CI Pipeline)
+## Sürekli Entegrasyon (CI)
 
-GitHub Actions üzerinde çalışan CI iş akışı (`.github/workflows/ci.yml`); `main` ve `production-hardening` branch'lerine yapılan `push` işlemlerinde ve `main` branch'ine açılan `pull_request` işlemlerinde tetiklenir:
+GitHub Actions üzerinde `.github/workflows/ci.yml` içerisinde tanımlanan CI süreci;
 
-1. **Backend CI:** Bağımlılık geri yükleme, Release derleme ve xUnit Unit + Integration testlerini çalıştırır.
-2. **Frontend CI:** ESLint denetimi, Vitest RTL testleri, Vite derlemesi ve bilgilendirme amaçlı `npm audit` çalıştırır.
-3. **E2E CI:** Playwright tarayıcılarını kurarak izole SQL Server eşliğinde uçtan uca akış testlerini icra eder.
+- `main`
+- `production-hardening`
 
----
+branch'lerine yapılan `push` işlemlerinde ve `main` branch'ine açılan pull request'lerde çalışır.
 
-## Kurulum ve Çalıştırma
+### Backend CI
 
-### 1. Docker Compose ile Hızlı Kurulum (Production-Like Ortam)
+- Dependency restore
+- Release build
+- Unit tests
+- Integration tests
 
-Projeyi tüm servisleri, ağ izolasyonları ve veritabanıyla birlikte izole konteynerlerde çalıştırmak için:
+### Frontend CI
 
-1. **Repository'yi Klonlayın:**
-   ```bash
-   git clone https://github.com/tuonde/ITServiceDesk.git
-   cd ITServiceDesk
-   ```
+- NPM dependency kurulumu
+- ESLint
+- Vitest / RTL testleri
+- Vite production build
+- Bilgilendirme amaçlı `npm audit`
 
-2. **Çevre Değişkenlerini Tanımlayın:**
-   Örnek yapılandırma dosyasını `.env` olarak kopyalayın ve güçlü parolalar belirleyin:
-   ```bash
-   cp .env.example .env
-   ```
-   *(Windows PowerShell için: `copy .env.example .env`)*
+### E2E CI
 
-   `.env` dosyasını açarak aşağıdaki değerleri tanımlayın:
-   ```env
-   SQL_SA_PASSWORD=SuperStrongPassword123!
-   JWT_SECRET=Minimum32KarakterUzunlugundaCokGuvenliBirGizliAnahtar!
-   ```
+Playwright tarayıcıları ve geçici SQL Server test ortamı hazırlanarak kritik uçtan uca kullanıcı akışları doğrulanır.
 
-3. **Konteynerleri Başlatın:**
-   ```bash
-   docker compose up -d --build
-   ```
-
-4. **Uygulamaya Erişin:**
-   Tarayıcınızdan `http://localhost:8080` adresine gidin.
+> Projede otomatik deployment (CD) pipeline'ı bulunmamaktadır. GitHub Actions yalnızca sürekli entegrasyon ve kalite kontrolleri için kullanılmaktadır.
 
 ---
 
-### 2. İlk Yönetici (Bootstrap Admin) Hesabını Tanımlama
+# Kurulum ve Çalıştırma
 
-Production-like Docker Compose yapılandırmasında `DemoData` varsayılan olarak devre dışıdır ve ilk kayıt olan kullanıcılar daima standart `User` rolüyle kaydedilir. 
+## 1. Docker Compose ile Hızlı Kurulum (Production-Like Ortam)
 
-İlk `Admin` hesabını oluşturmak için `.env` dosyanızda şu değişkenleri açıp konteyneri başlatmanız yeterlidir:
+Projeyi frontend, backend API ve SQL Server ile birlikte izole Docker konteynerlerinde çalıştırmak için aşağıdaki adımlar uygulanabilir.
 
-```env
-BOOTSTRAP_ADMIN_ENABLED=true
-BOOTSTRAP_ADMIN_EMAIL=admin@sirketdomain.com
-BOOTSTRAP_ADMIN_PASSWORD=CokGuvenliAdminParolasi123!
+### 1. Repository'yi Klonlayın
+
+```bash
+git clone https://github.com/tuonde/ITServiceDesk.git
+cd ITServiceDesk
 ```
 
-API başladığında bu hesabı otomatik olarak oluşturur (Idempotent). İlk yönetici başarıyla oluşturulduktan sonra güvenlik amacıyla `BOOTSTRAP_ADMIN_ENABLED=false` yapılması ve bootstrap admin parolasının ortam yapılandırmasından (`.env`) kaldırılması önerilir.
+### 2. Çevre Değişkenlerini Oluşturun
+
+Örnek yapılandırma dosyasını `.env` olarak kopyalayın:
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+copy .env.example .env
+```
+
+Ardından `.env` dosyasını açarak en az aşağıdaki değerleri kendi ortamınıza uygun şekilde belirleyin:
+
+```env
+SQL_SA_PASSWORD=<guclu-sql-server-parolasi>
+JWT_SECRET=<en-az-32-karakter-uzunlugunda-guclu-bir-secret>
+
+DEMO_DATA_ENABLED=false
+```
+
+> [!IMPORTANT]
+> Temiz veya gerçek kullanım amaçlı kurulumlarda `DEMO_DATA_ENABLED=false` bırakılmalıdır.
+>
+> Bu ayar kapalı olduğunda demo kullanıcılar, örnek ticket'lar, cihazlar ve diğer demo iş verileri oluşturulmaz.
+>
+> `DEMO_DATA_ENABLED=true` yalnızca geliştirme, test veya proje gösterimi amacıyla kullanılmalıdır.
+
+### 3. İlk Admin Hesabını Tanımlayın
+
+Temiz kurulumda demo kullanıcı oluşturulmadığı için sisteme ilk erişimi sağlayacak Admin hesabı BootstrapAdmin mekanizması ile oluşturulur.
+
+`.env` dosyasına aşağıdaki değerleri ekleyin:
+
+```env
+DEMO_DATA_ENABLED=false
+
+BOOTSTRAP_ADMIN_ENABLED=true
+BOOTSTRAP_ADMIN_EMAIL=admin@sirketdomain.com
+BOOTSTRAP_ADMIN_PASSWORD=<guclu-admin-parolasi>
+```
+
+E-posta ve parola gerçek kurulum ortamına göre değiştirilmelidir.
+
+### 4. Konteynerleri Başlatın
+
+```bash
+docker compose up -d --build
+```
+
+Servis durumlarını görmek için:
+
+```bash
+docker compose ps
+```
+
+SQL Server, API ve frontend servislerinin `healthy` durumuna gelmesi beklenmelidir.
+
+### 5. Uygulamaya Erişin
+
+Tarayıcıdan:
+
+```text
+http://localhost:8080
+```
+
+adresine gidin ve `.env` dosyasında belirlediğiniz BootstrapAdmin hesabıyla giriş yapın.
+
+### 6. BootstrapAdmin'i Devre Dışı Bırakın
+
+İlk Admin hesabının başarıyla oluşturulduğu doğrulandıktan sonra `.env` içerisinde:
+
+```env
+BOOTSTRAP_ADMIN_ENABLED=false
+```
+
+yapılması önerilir.
+
+Ayrıca `BOOTSTRAP_ADMIN_PASSWORD` değerinin ortam yapılandırmasından kaldırılması gerekir.
+
+Bootstrap mekanizmasının kapatılması oluşturulmuş Admin hesabını silmez. Yalnızca uygulama başlangıcındaki bootstrap işlemini devre dışı bırakır.
+
+> [!IMPORTANT]
+> Bootstrap için tanımlanan e-posta sistemde zaten mevcut ancak kullanıcı Admin rolünde değilse otomatik yetki yükseltme yapılmaz. Uygulama güvenlik amacıyla başlangıcı fail-closed şekilde durdurur.
 
 ---
 
-### 3. Yerel Geliştirme (Local Development)
+## 2. Temiz Kurulum ve Demo Ortamı Arasındaki Fark
+
+ITServiceDesk iki farklı başlangıç senaryosunu destekler.
+
+### Temiz / Kurumsal Kurulum
+
+```env
+DEMO_DATA_ENABLED=false
+BOOTSTRAP_ADMIN_ENABLED=true
+```
+
+Bu durumda:
+
+- Demo kullanıcılar oluşturulmaz.
+- Örnek ticket'lar oluşturulmaz.
+- Demo cihaz ve iş verileri oluşturulmaz.
+- Veritabanı migration'ları uygulanır.
+- Yalnızca `.env` içerisinde belirtilen başlangıç Admin hesabı oluşturulur.
+- Gerçek departmanlar, kullanıcılar, teknisyenler, kategoriler ve cihazlar daha sonra sistem üzerinden eklenebilir.
+
+### Demo / Geliştirme Ortamı
+
+```env
+DEMO_DATA_ENABLED=true
+```
+
+Bu durumda örnek kullanıcılar ve uygulamanın denenmesi için hazırlanmış demo veriler otomatik olarak oluşturulur.
+
+Demo ortamı gerçek kurumsal veri girişi için değil, geliştirme, test ve proje gösterimi amacıyla kullanılmalıdır.
+
+---
+
+## 3. Yerel Geliştirme (Local Development)
 
 Docker kullanmadan doğrudan yerel ortamda çalıştırmak için:
 
-**Gereksinimler:** .NET 8 SDK, Node.js 24 önerilir (CI ortamında Node.js 24 kullanılmaktadır), SQL Server (LocalDB / Express)
+### Gereksinimler
 
-1. **Veritabanı Migration'larını Uygulayın:**
-   ```powershell
-   dotnet ef database update --project ITServiceDesk.Data --startup-project ITServiceDesk.API
-   ```
+- .NET 8 SDK
+- Node.js 24 önerilir
+- SQL Server LocalDB veya SQL Server Express
 
-2. **Backend API'yi Başlatın:**
-   ```powershell
-   cd ITServiceDesk.API
-   dotnet run
-   ```
-   *API `http://localhost:5014` adresinde çalışacaktır (Swagger: `http://localhost:5014/swagger`).*
+### 1. Veritabanı Migration'larını Uygulayın
 
-3. **Frontend İstemcisini Başlatın:**
-   ```powershell
-   cd ITServiceDesk.Client
-   npm ci
-   npm run dev
-   ```
-   *Frontend `http://localhost:5173` adresinde çalışacaktır.*
+```powershell
+dotnet ef database update --project ITServiceDesk.Data --startup-project ITServiceDesk.API
+```
 
-#### Geliştirme Modu Demo Hesapları (Yalnızca Local Dev)
-Development modunda `DemoData:Enabled=true` iken örnek verilerle birlikte şu hesaplar otomatik oluşturulur:
-- **Admin:** `admin@itservicedesk.local` / `Demo12345!`
-- **Technician:** `tech@itservicedesk.local` / `Demo12345!`
-- **User:** `user@itservicedesk.local` / `Demo12345!`
+### 2. Backend API'yi Başlatın
+
+```powershell
+cd ITServiceDesk.API
+dotnet run
+```
+
+API varsayılan geliştirme yapılandırmasında:
+
+```text
+http://localhost:5014
+```
+
+adresinde çalışır.
+
+Swagger Development ortamında:
+
+```text
+http://localhost:5014/swagger
+```
+
+adresinden kullanılabilir.
+
+### 3. Frontend İstemcisini Başlatın
+
+```powershell
+cd ITServiceDesk.Client
+npm ci
+npm run dev
+```
+
+Frontend:
+
+```text
+http://localhost:5173
+```
+
+adresinde çalışır.
+
+### Geliştirme Modu Demo Hesapları
+
+Development ortamında `DemoData:Enabled=true` veya karşılık gelen environment ayarı etkinleştirildiğinde aşağıdaki demo hesapları oluşturulur:
+
+- **Admin:** `admin@itservicedesk.local`
+- **Technician:** `tech@itservicedesk.local`
+- **User:** `user@itservicedesk.local`
+
+Demo hesapların parolaları yalnızca geliştirme/demo ortamındaki yapılandırmadan kullanılmalıdır.
+
+> Demo hesaplar gerçek veya production-like kurulumlarda kullanılmamalıdır.
 
 ---
 
 ## Kalıcı Veri Saklama (Persistence)
 
-Docker ortamında iki adet adlandırılmış volume (named volume) kullanılır:
-- **`sqlserver-data`:** SQL Server veritabanı dosyaları (`/var/opt/mssql`) için kalıcı disk alanı.
-- **`api-uploads`:** Yüklenen bilet ekleri ve logo görselleri (`/app/App_Data/uploads`) için kalıcı disk alanı.
+Docker ortamında iki adet named volume kullanılmaktadır:
+
+- **`sqlserver-data`:** SQL Server veritabanı dosyalarının `/var/opt/mssql` altında kalıcı olarak saklanmasını sağlar.
+- **`api-uploads`:** Ticket ekleri ve özel logo dosyalarının `/app/App_Data/uploads` altında kalıcı olarak saklanmasını sağlar.
+
+Bu nedenle konteynerlerin yeniden başlatılması veya:
+
+```bash
+docker compose down
+```
+
+komutunun kullanılması veritabanını ve yüklenen dosyaları silmez.
+
+Container'lar tekrar başlatıldığında mevcut veriler kullanılmaya devam edilir.
+
+Ancak:
+
+```bash
+docker compose down -v
+```
+
+komutu named volume'ları da kaldırır.
+
+Bu işlem:
+
+- SQL Server veritabanını,
+- ticket attachment dosyalarını,
+- yüklenen özel logo dosyalarını
+
+kalıcı olarak silebilir.
+
+Gerçek veri bulunan ortamlarda `docker compose down -v` komutu dikkatli kullanılmalıdır.
 
 ---
 
 ## Dağıtım Durumu (Deployment Scope)
 
-Bu repository, **üretim standartlarına yakın (production-like) bir Docker Compose topolojisi** sunmaktadır. 
+Bu repository **production-like bir Docker Compose topolojisi** sunmaktadır.
 
-Aşağıdaki kurumsal altyapı bileşenleri bu projenin kapsamı dışındadır ve gerçek canlıya geçişte barındırma ortamı (Hosting Provider) tarafından sağlanmalıdır:
-- Canlı TLS/SSL sertifika sağlama ve yönetimi (Let's Encrypt / Cloudflare)
-- HSTS başlığının canlı proxy seviyesinde aktifleştirilmesi
-- Yük Dengeleme (Load Balancing) ve Yüksek Erişilebilirlik (HA)
-- Kubernetes / Bulut dağıtım manifestoları
-- Otomatik veritabanı yedekleme ve felaket kurtarma (Disaster Recovery)
+Proje içerisinde:
+
+- frontend reverse proxy,
+- API,
+- SQL Server,
+- ağ izolasyonu,
+- health checks,
+- kalıcı volume'lar,
+- structured logging,
+- güvenlik başlıkları
+
+yapılandırılmıştır.
+
+Ancak repository gerçek bir public production deployment içermez.
+
+Aşağıdaki kurumsal altyapı bileşenleri proje kapsamı dışındadır ve gerçek canlıya geçiş sırasında barındırma ortamında ayrıca ele alınmalıdır:
+
+- TLS/SSL sertifika sağlama ve yönetimi
+- HSTS'nin canlı proxy seviyesinde uygulanması
+- Load Balancing
+- High Availability
+- Kubernetes / bulut dağıtım manifestoları
+- Otomatik veritabanı yedekleme
+- Disaster Recovery
+- Merkezi log toplama ve izleme altyapısı
 
 ---
 
 ## Bilinen Teknik Sınırlamalar (Technical Debt)
 
 - **JWT Depolama:** Access token'lar tarayıcıda `localStorage` üzerinde saklanmaktadır.
-- **Kestrel HTTPS Uyarısı:** Yerel HTTP Docker Compose ortamında Kestrel'in verdiği `Failed to determine the https port for redirect.` log uyarısı (gerçek ortamda ters vekil TLS sonlandırması ile yönetilecektir).
-- **ReactQuill CSP Kapsamı:** Zengin metin editörüne özgü uçtan uca izole CSP test kapsamı.
-- **Frontend Lint Uyarıları:** `useEffect` hook'larında 7 adet eksik dependency uyarısı.
-- **npm audit & Derleme Uyarıları:** Frontend paketlerine dair bilgilendirici denetim uyarıları ve backend nullable/async derleyici uyarıları.
-- **SQL Server Sürümü:** SQL Server 2022 CU14 temel imajı periyodik güvenlik yaması takibi gerektirir.
+- **Kestrel HTTPS Uyarısı:** Yerel HTTP Docker Compose ortamında `Failed to determine the https port for redirect.` uyarısı görülebilir. Gerçek dağıtımda TLS reverse proxy seviyesinde ele alınmalıdır.
+- **ReactQuill CSP Kapsamı:** Zengin metin editörüne özgü bağımsız CSP E2E kapsamı bulunmamaktadır.
+- **Frontend Lint Uyarıları:** Bazı `useEffect` hook'larında mevcut dependency uyarıları bulunmaktadır.
+- **npm audit:** Frontend bağımlılıkları için bilinen denetim bulguları bulunmaktadır ve periyodik bağımlılık güncellemesi gerektirir.
+- **Backend Derleyici Uyarıları:** Bazı nullable/async uyarıları teknik borç olarak bulunmaktadır.
+- **SQL Server Sürümü:** SQL Server 2022 CU14 image sürümü periyodik güvenlik ve bakım güncellemesi takibi gerektirir.
 
 ---
 
@@ -503,18 +780,32 @@ Aşağıdaki kurumsal altyapı bileşenleri bu projenin kapsamı dışındadır 
 
 ```text
 ITServiceDesk/
+│
 ├── .github/
-│   └── workflows/ci.yml       # GitHub Actions CI Tanımı
-├── ITServiceDesk.API/         # ASP.NET Core Web API Sunucusu & Controller'lar
-├── ITServiceDesk.Client/      # React & Vite Frontend Uygulaması
-│   ├── nginx.conf             # Nginx Yapılandırması (CSP, Reverse Proxy, Headers)
-│   └── tests/                 # RTL ve Playwright E2E Testleri
-├── ITServiceDesk.Core/        # Domain Modelleri, DTO'lar ve Arayüzler
-├── ITServiceDesk.Data/        # EF Core DbContext, Migration'lar ve Repository'ler
-├── ITServiceDesk.Service/     # İş Mantığı, Servisler, SLA ve Validasyonlar
+│   └── workflows/
+│       └── ci.yml
+│
+├── ITServiceDesk.API/
+│   └── ASP.NET Core Web API, Controller'lar, Middleware ve SignalR
+│
+├── ITServiceDesk.Client/
+│   ├── nginx.conf
+│   └── React / TypeScript Frontend
+│
+├── ITServiceDesk.Core/
+│   └── Domain modelleri, DTO'lar ve arayüzler
+│
+├── ITServiceDesk.Data/
+│   └── EF Core DbContext, Migration ve Repository'ler
+│
+├── ITServiceDesk.Service/
+│   └── İş mantığı, servisler, SLA ve validasyonlar
+│
 ├── tests/
-│   ├── ITServiceDesk.UnitTests/         # xUnit Birim Testleri
-│   └── ITServiceDesk.IntegrationTests/  # Testcontainers API & SQL Entegrasyon Testleri
-├── compose.yaml               # Üretim Benzeri Docker Compose Orkestrasyonu
-└── .env.example               # Örnek Çevre Değişkenleri Şablonu
+│   ├── ITServiceDesk.UnitTests/
+│   └── ITServiceDesk.IntegrationTests/
+│
+├── compose.yaml
+├── .env.example
+└── README.md
 ```
