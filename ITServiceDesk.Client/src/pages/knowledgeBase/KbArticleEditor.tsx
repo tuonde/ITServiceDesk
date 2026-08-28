@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -39,8 +39,8 @@ export const KbArticleEditor: React.FC = () => {
                     setStatus(article.status);
                     setArticleType(article.articleType);
                 }
-            } catch {
-                toast.error("Veriler yÃ¼klenemedi.");
+            } catch (error) {
+                toast.error("Veriler yüklenemedi.");
             } finally {
                 setLoading(false);
             }
@@ -52,12 +52,12 @@ export const KbArticleEditor: React.FC = () => {
         e.preventDefault();
         
         if (!categoryId) {
-            toast.error("LÃ¼tfen bir kategori seÃ§in.");
+            toast.error("Lütfen bir kategori seçin.");
             return;
         }
         
         if (!content || content === '<p><br></p>') {
-            toast.error("Makale iÃ§eriÄŸi boÅŸ olamaz.");
+            toast.error("Makale içeriği boş olamaz.");
             return;
         }
 
@@ -66,14 +66,14 @@ export const KbArticleEditor: React.FC = () => {
             
             if (isEditing && id) {
                 await kbArticleService.update(id, { id, ...dto });
-                toast.success("Makale gÃ¼ncellendi.");
+                toast.success("Makale güncellendi.");
             } else {
                 await kbArticleService.create(dto);
-                toast.success("Makale oluÅŸturuldu.");
+                toast.success("Makale oluşturuldu.");
             }
             navigate('/kb-admin/articles');
-        } catch {
-            toast.error("Kaydetme iÅŸlemi baÅŸarÄ±sÄ±z oldu.");
+        } catch (error) {
+            toast.error("Kaydetme işlemi başarısız oldu.");
         }
     };
 
@@ -89,7 +89,7 @@ export const KbArticleEditor: React.FC = () => {
     }), []);
 
     if (loading) {
-        return <div className="p-8 text-center text-slate-500">YÃ¼kleniyor...</div>;
+        return <div className="p-8 text-center text-slate-500">Yükleniyor...</div>;
     }
 
     return (
@@ -97,42 +97,42 @@ export const KbArticleEditor: React.FC = () => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <div className="flex items-center gap-2">
-                        <Link to="/kb-admin/articles" className="text-emerald-600 hover:text-emerald-700 font-medium">â† Makalelere DÃ¶n</Link>
+                        <Link to="/kb-admin/articles" className="text-emerald-600 hover:text-emerald-700 font-medium">← Makalelere Dön</Link>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800 mt-2">{isEditing ? 'Makaleyi DÃ¼zenle' : 'Yeni Makale OluÅŸtur'}</h1>
+                    <h1 className="text-2xl font-bold text-slate-800 mt-2">{isEditing ? 'Makaleyi Düzenle' : 'Yeni Makale Oluştur'}</h1>
                 </div>
             </div>
 
             <form onSubmit={handleSave} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-6 space-y-6">
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Makale BaÅŸlÄ±ÄŸÄ±</label>
-                        <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="KÄ±sa ve aÃ§Ä±klayÄ±cÄ± bir baÅŸlÄ±k girin..." className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-medium text-slate-800" />
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Makale Başlığı</label>
+                        <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Kısa ve açıklayıcı bir başlık girin..." className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-medium text-slate-800" />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Kategori</label>
                             <select required value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value="" disabled>Kategori SeÃ§in...</option>
+                                <option value="" disabled>Kategori Seçin...</option>
                                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1">Makale Tipi</label>
                             <select required value={articleType} onChange={e => setArticleType(Number(e.target.value))} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                                <option value={KbArticleType.FAQ}>FAQ (SÄ±kÃ§a Sorulan Sorular)</option>
-                                <option value={KbArticleType.Guide}>Rehber (KullanÄ±m KÄ±lavuzu)</option>
-                                <option value={KbArticleType.Troubleshooting}>Sorun Giderme (Hata Ã‡Ã¶zÃ¼mÃ¼)</option>
-                                <option value={KbArticleType.Procedure}>ProsedÃ¼r (Ä°ÅŸ SÃ¼reci)</option>
-                                <option value={KbArticleType.Reference}>Referans (Teknik DokÃ¼man)</option>
+                                <option value={KbArticleType.FAQ}>FAQ (Sıkça Sorulan Sorular)</option>
+                                <option value={KbArticleType.Guide}>Rehber (Kullanım Kılavuzu)</option>
+                                <option value={KbArticleType.Troubleshooting}>Sorun Giderme (Hata Çözümü)</option>
+                                <option value={KbArticleType.Procedure}>Prosedür (İş Süreci)</option>
+                                <option value={KbArticleType.Reference}>Referans (Teknik Doküman)</option>
                             </select>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">GÃ¶rÃ¼nÃ¼rlÃ¼k (EriÅŸim Yetkisi)</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Görünürlük (Erişim Yetkisi)</label>
                             <div className="flex gap-4">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="visibility" value={KbArticleVisibility.Both} checked={visibility === KbArticleVisibility.Both} onChange={() => setVisibility(KbArticleVisibility.Both)} className="text-emerald-500 focus:ring-emerald-500" />
@@ -140,7 +140,7 @@ export const KbArticleEditor: React.FC = () => {
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="visibility" value={KbArticleVisibility.User} checked={visibility === KbArticleVisibility.User} onChange={() => setVisibility(KbArticleVisibility.User)} className="text-emerald-500 focus:ring-emerald-500" />
-                                    <span className="text-sm text-slate-700 font-medium">Sadece KullanÄ±cÄ±lar</span>
+                                    <span className="text-sm text-slate-700 font-medium">Sadece Kullanıcılar</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="visibility" value={KbArticleVisibility.Technician} checked={visibility === KbArticleVisibility.Technician} onChange={() => setVisibility(KbArticleVisibility.Technician)} className="text-emerald-500 focus:ring-emerald-500" />
@@ -150,7 +150,7 @@ export const KbArticleEditor: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">YayÄ±n Durumu</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Yayın Durumu</label>
                             <div className="flex gap-4">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="status" value={KbArticleStatus.Draft} checked={status === KbArticleStatus.Draft} onChange={() => setStatus(KbArticleStatus.Draft)} className="text-emerald-500 focus:ring-emerald-500" />
@@ -158,18 +158,18 @@ export const KbArticleEditor: React.FC = () => {
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="status" value={KbArticleStatus.Published} checked={status === KbArticleStatus.Published} onChange={() => setStatus(KbArticleStatus.Published)} className="text-emerald-500 focus:ring-emerald-500" />
-                                    <span className="text-sm text-slate-700 font-medium text-emerald-600">YayÄ±nda</span>
+                                    <span className="text-sm text-slate-700 font-medium text-emerald-600">Yayında</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="radio" name="status" value={KbArticleStatus.Archived} checked={status === KbArticleStatus.Archived} onChange={() => setStatus(KbArticleStatus.Archived)} className="text-emerald-500 focus:ring-emerald-500" />
-                                    <span className="text-sm text-slate-700 font-medium text-slate-500">ArÅŸivle</span>
+                                    <span className="text-sm text-slate-700 font-medium text-slate-500">Arşivle</span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Ä°Ã§erik (Zengin Metin)</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">İçerik (Zengin Metin)</label>
                         <div className="border border-slate-300 rounded-lg overflow-hidden bg-white">
                             <ReactQuill 
                                 theme="snow" 
@@ -177,16 +177,16 @@ export const KbArticleEditor: React.FC = () => {
                                 onChange={setContent} 
                                 modules={modules}
                                 className="h-64 sm:h-96"
-                                placeholder="Makale iÃ§eriÄŸini buraya yazÄ±n..."
+                                placeholder="Makale içeriğini buraya yazın..."
                             />
                         </div>
-                        <p className="text-xs text-slate-400 mt-2">Ä°Ã§erik otomatik olarak HTML formatÄ±nda saklanÄ±r.</p>
+                        <p className="text-xs text-slate-400 mt-2">İçerik otomatik olarak HTML formatında saklanır.</p>
                     </div>
                 </div>
 
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
                     <Link to="/kb-admin/articles" className="px-6 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">
-                        Ä°ptal
+                        İptal
                     </Link>
                     <button type="submit" className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 font-medium transition-colors shadow-sm">
                         Makaleyi Kaydet

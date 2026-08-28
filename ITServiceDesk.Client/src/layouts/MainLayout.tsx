@@ -12,20 +12,20 @@ import { useNavigate } from 'react-router-dom';
 
 const getStatusConfig = (status: TicketStatus) => {
   switch (status) {
-    case TicketStatus.Open: return { label: 'AÃ§Ä±k', class: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-    case TicketStatus.InProgress: return { label: 'Ä°ÅŸlemde', class: 'bg-blue-100 text-blue-700 border-blue-200' };
-    case TicketStatus.WaitingForUser: return { label: 'KullanÄ±cÄ± Bekleniyor', class: 'bg-amber-100 text-amber-700 border-amber-200' };
-    case TicketStatus.Resolved: return { label: 'Ã‡Ã¶zÃ¼ldÃ¼', class: 'bg-purple-100 text-purple-700 border-purple-200' };
-    case TicketStatus.Closed: return { label: 'KapalÄ±', class: 'bg-slate-100 text-slate-700 border-slate-200' };
+    case TicketStatus.Open: return { label: 'Açık', class: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    case TicketStatus.InProgress: return { label: 'İşlemde', class: 'bg-blue-100 text-blue-700 border-blue-200' };
+    case TicketStatus.WaitingForUser: return { label: 'Kullanıcı Bekleniyor', class: 'bg-amber-100 text-amber-700 border-amber-200' };
+    case TicketStatus.Resolved: return { label: 'Çözüldü', class: 'bg-purple-100 text-purple-700 border-purple-200' };
+    case TicketStatus.Closed: return { label: 'Kapalı', class: 'bg-slate-100 text-slate-700 border-slate-200' };
     default: return { label: 'Bilinmiyor', class: 'bg-gray-100 text-gray-700 border-gray-200' };
   }
 };
 
 const getPriorityConfig = (priority: Priority) => {
   switch (priority) {
-    case Priority.Low: return { label: 'DÃ¼ÅŸÃ¼k', class: 'bg-slate-100 text-slate-700 border-slate-200' };
+    case Priority.Low: return { label: 'Düşük', class: 'bg-slate-100 text-slate-700 border-slate-200' };
     case Priority.Medium: return { label: 'Orta', class: 'bg-blue-100 text-blue-700 border-blue-200' };
-    case Priority.High: return { label: 'YÃ¼ksek', class: 'bg-amber-100 text-amber-700 border-amber-200' };
+    case Priority.High: return { label: 'Yüksek', class: 'bg-amber-100 text-amber-700 border-amber-200' };
     case Priority.Critical: return { label: 'Kritik', class: 'bg-rose-100 text-rose-700 border-rose-200' };
     default: return { label: 'Bilinmiyor', class: 'bg-gray-100 text-gray-700 border-gray-200' };
   }
@@ -46,7 +46,7 @@ const MainLayout: React.FC = () => {
   const isTechnician = authService.isTechnician();
   const isMobileResponsive = !isAdmin;
   let pageTitle = '';
-  if (isDashboardPage) pageTitle = 'Ana MenÃ¼';
+  if (isDashboardPage) pageTitle = 'Ana Menü';
   else if (isTicketsPage) pageTitle = '';
   else if (isUsersPage) pageTitle = '';
   else if (isDepartmentsPage) pageTitle = '';
@@ -126,7 +126,7 @@ const MainLayout: React.FC = () => {
       try {
         const url = await settingsService.getLogoUrl();
         if (url) setLogoUrl(url);
-      } catch { }
+      } catch (err) { }
     };
     fetchLogo();
 
@@ -150,7 +150,7 @@ const MainLayout: React.FC = () => {
       try {
         const res = await ticketService.getAll({ pageNumber: 1, pageSize: 100, status: TicketStatus.Open });
         setOpenTicketCount(res.totalRecords);
-      } catch { }
+      } catch (err) { }
     };
 
     const fetchNotifications = async () => {
@@ -161,7 +161,7 @@ const MainLayout: React.FC = () => {
           setNotifications(res);
           setUnreadCount(res.length);
         }
-      } catch { }
+      } catch (err) { }
     };
 
     fetchOpenTickets();
@@ -293,7 +293,7 @@ const MainLayout: React.FC = () => {
                   </ul>
                 ) : (
                   <div className="px-4 py-6 text-center text-slate-500 text-sm">
-                    EÅŸleÅŸen talep bulunamadÄ±.
+                    Eşleşen talep bulunamadı.
                   </div>
                 )}
               </div>
@@ -304,9 +304,9 @@ const MainLayout: React.FC = () => {
         {/* Topbar Middle: Navigation for Users and Technicians */}
         {!isAdmin && (
           <nav className="flex-1 px-8 hidden sm:flex items-center gap-8 justify-center">
-            <Link to="/" className={`text-sm font-bold transition-all ${isDashboardPage ? 'text-emerald-600 drop-shadow-sm scale-105' : 'text-slate-500 hover:text-emerald-600'}`}>Ana MenÃ¼</Link>
+            <Link to="/" className={`text-sm font-bold transition-all ${isDashboardPage ? 'text-emerald-600 drop-shadow-sm scale-105' : 'text-slate-500 hover:text-emerald-600'}`}>Ana Menü</Link>
             <Link to="/my-inventory" className={`text-sm font-bold transition-all ${location.pathname === '/my-inventory' ? 'text-emerald-600 drop-shadow-sm scale-105' : 'text-slate-500 hover:text-emerald-600'}`}>Zimmetlerim</Link>
-            <Link to="/help" className={`text-sm font-bold transition-all ${location.pathname === '/help' ? 'text-emerald-600 drop-shadow-sm scale-105' : 'text-slate-500 hover:text-emerald-600'}`}>YardÄ±m</Link>
+            <Link to="/help" className={`text-sm font-bold transition-all ${location.pathname === '/help' ? 'text-emerald-600 drop-shadow-sm scale-105' : 'text-slate-500 hover:text-emerald-600'}`}>Yardım</Link>
           </nav>
         )}
 
@@ -324,7 +324,7 @@ const MainLayout: React.FC = () => {
                     await notificationService.markAllAsRead();
                     setUnreadCount(0);
                     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-                  } catch { }
+                  } catch (err) { }
                 }
               }}
               className="relative w-10 h-10 bg-slate-50 border border-slate-100 hover:bg-slate-100 rounded-full flex items-center justify-center text-slate-600 transition-colors focus:outline-none"
@@ -343,13 +343,13 @@ const MainLayout: React.FC = () => {
               <div className="fixed inset-x-4 top-[4.5rem] sm:inset-x-auto sm:top-auto sm:absolute sm:right-0 sm:mt-2 w-auto sm:w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
                   <h3 className="font-semibold text-slate-800">Bildirimler</h3>
-                  {/* Empty block to replace the 'TÃ¼mÃ¼nÃ¼ Okundu Ä°ÅŸaretle' button since we auto-mark */}
+                  {/* Empty block to replace the 'Tümünü Okundu İşaretle' button since we auto-mark */}
                 </div>
                 <div className="max-h-96 overflow-y-auto custom-scrollbar">
                   {notifications.length === 0 ? (
                     <div className="p-6 text-center text-sm text-slate-500 flex flex-col items-center">
                       <svg className="w-8 h-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                      HenÃ¼z bildiriminiz yok.
+                      Henüz bildiriminiz yok.
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-50">
@@ -392,12 +392,12 @@ const MainLayout: React.FC = () => {
           <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
 
           {/* Profile Section */}
-          <Link to="/profile" className="flex items-center gap-3 hover:bg-slate-50 p-1.5 pr-3 rounded-full transition-colors cursor-pointer border border-transparent hover:border-slate-200" title="Profil AyarlarÄ±">
+          <Link to="/profile" className="flex items-center gap-3 hover:bg-slate-50 p-1.5 pr-3 rounded-full transition-colors cursor-pointer border border-transparent hover:border-slate-200" title="Profil Ayarları">
             <div className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold shadow-sm border border-emerald-200 text-sm">
               {authService.getUserFullName()?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="text-left hidden sm:block">
-              <div className="text-sm font-bold text-slate-700 leading-none mb-0.5">{authService.getUserFullName() || 'KullanÄ±cÄ±'}</div>
+              <div className="text-sm font-bold text-slate-700 leading-none mb-0.5">{authService.getUserFullName() || 'Kullanıcı'}</div>
               <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-none">{roles.join(', ') || 'Bilinmiyor'}</div>
             </div>
           </Link>
@@ -405,12 +405,12 @@ const MainLayout: React.FC = () => {
           {/* Logout Button */}
           <button
             onClick={() => {
-              if (window.confirm('Oturumunuz sonlandÄ±rÄ±lacak. Ã‡Ä±kÄ±ÅŸ yapmak istediÄŸinize emin misiniz?')) {
+              if (window.confirm('Oturumunuz sonlandırılacak. Çıkış yapmak istediğinize emin misiniz?')) {
                 authService.logout();
               }
             }}
             className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors focus:outline-none"
-            title="Ã‡Ä±kÄ±ÅŸ Yap"
+            title="Çıkış Yap"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
           </button>
@@ -427,13 +427,13 @@ const MainLayout: React.FC = () => {
             <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
               <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isDashboardPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                Ana MenÃ¼
+                Ana Menü
               </Link>
 
               {(isAdmin || isTechnician) && (
                 <Link to="/my-tasks" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${location.pathname.startsWith('/my-tasks') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                  GÃ¶revlerim
+                  Görevlerim
                 </Link>
               )}
 
@@ -453,11 +453,11 @@ const MainLayout: React.FC = () => {
                 <>
                   <Link to="/inventory" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${location.pathname === '/inventory' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                    Envanter YÃ¶netimi
+                    Envanter Yönetimi
                   </Link>
                   <Link to="/users" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isUsersPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    KullanÄ±cÄ±lar
+                    Kullanıcılar
                   </Link>
                   <Link to="/departments" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isDepartmentsPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
@@ -465,15 +465,15 @@ const MainLayout: React.FC = () => {
                   </Link>
                   <Link to="/kb-admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${location.pathname.startsWith('/kb-admin') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-                    Bilgi BankasÄ± Ynt.
+                    Bilgi Bankası Ynt.
                   </Link>
                   <Link to="/reports" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isReportsPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
-                    GeliÅŸmiÅŸ Raporlar
+                    Gelişmiş Raporlar
                   </Link>
                   <Link to="/audit-logs" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isAuditLogsPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    Sistem KayÄ±tlarÄ±
+                    Sistem Kayıtları
                   </Link>
                   <Link to="/settings" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${isSettingsPage ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -525,7 +525,7 @@ const MainLayout: React.FC = () => {
         <nav className="sm:hidden fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-md border-t border-slate-200/60 flex items-center justify-around z-50 h-16 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <Link to="/" className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all ${isDashboardPage ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>
             <svg className={`w-6 h-6 transition-transform ${isDashboardPage ? 'scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isDashboardPage ? 2.5 : 2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-            <span className="text-[10px] font-bold tracking-wide">Ana MenÃ¼</span>
+            <span className="text-[10px] font-bold tracking-wide">Ana Menü</span>
           </Link>
           <Link to="/my-inventory" className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all ${location.pathname === '/my-inventory' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>
             <svg className={`w-6 h-6 transition-transform ${location.pathname === '/my-inventory' ? 'scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={location.pathname === '/my-inventory' ? 2.5 : 2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>
@@ -533,7 +533,7 @@ const MainLayout: React.FC = () => {
           </Link>
           <Link to="/help" className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all ${location.pathname === '/help' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>
             <svg className={`w-6 h-6 transition-transform ${location.pathname === '/help' ? 'scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={location.pathname === '/help' ? 2.5 : 2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span className="text-[10px] font-bold tracking-wide">YardÄ±m</span>
+            <span className="text-[10px] font-bold tracking-wide">Yardım</span>
           </Link>
         </nav>
       )}

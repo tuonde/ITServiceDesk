@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { userService } from '../services/userService';
 import { departmentService } from '../services/departmentService';
 import type { UserListDto } from '../types/user';
@@ -67,8 +67,8 @@ const Users: React.FC = () => {
         setUsers([]);
       }
       setDepartments(depsRes.data || []);
-    } catch {
-      toast.error('Veriler yÃ¼klenirken bir hata oluÅŸtu.');
+    } catch (err: any) {
+      toast.error('Veriler yüklenirken bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
@@ -77,16 +77,16 @@ const Users: React.FC = () => {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      toast.error('Ad ve Soyad alanlarÄ± boÅŸ bÄ±rakÄ±lamaz.');
+      toast.error('Ad ve Soyad alanları boş bırakılamaz.');
       return;
     }
 
     const sanitize = (text: string) => {
       const charMap: Record<string, string> = {
-        'Ã§': 'c', 'ÄŸ': 'g', 'Ä±': 'i', 'Ã¶': 'o', 'ÅŸ': 's', 'Ã¼': 'u',
-        'Ã‡': 'C', 'Ä': 'G', 'Ä°': 'I', 'Ã–': 'O', 'Å': 'S', 'Ãœ': 'U'
+        'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+        'Ç': 'C', 'Ğ': 'G', 'İ': 'I', 'Ö': 'O', 'Ş': 'S', 'Ü': 'U'
       };
-      return text.replace(/[Ã§ÄŸÄ±ÅŸÃ¶Ã¼Ã‡ÄÄ°ÅÃ–Ãœ]/g, match => charMap[match]).toLowerCase().replace(/[^a-z]/g, '');
+      return text.replace(/[çğışöüÇĞİŞÖÜ]/g, match => charMap[match]).toLowerCase().replace(/[^a-z]/g, '');
     };
 
     const cleanFirst = sanitize(formData.firstName);
@@ -120,14 +120,14 @@ const Users: React.FC = () => {
       });
       toast.success((t) => (
         <div className="flex flex-col gap-2">
-          <span className="font-bold">KullanÄ±cÄ± oluÅŸturuldu!</span>
+          <span className="font-bold">Kullanıcı oluşturuldu!</span>
           <span>E-posta: <b>{generatedEmail}</b></span>
-          <span>GeÃ§ici Åifre: <b className="tracking-wider">{response.data?.generatedPassword}</b></span>
+          <span>Geçici Şifre: <b className="tracking-wider">{response.data?.generatedPassword}</b></span>
           <button 
             onClick={() => { 
-              navigator.clipboard.writeText(`Email: ${generatedEmail}\nÅifre: ${response.data?.generatedPassword}`); 
+              navigator.clipboard.writeText(`Email: ${generatedEmail}\nŞifre: ${response.data?.generatedPassword}`); 
               toast.dismiss(t.id); 
-              toast.success('Bilgiler panoya kopyalandÄ±!'); 
+              toast.success('Bilgiler panoya kopyalandı!'); 
             }} 
             className="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded text-sm font-medium hover:bg-emerald-200 transition-colors"
           >
@@ -139,14 +139,14 @@ const Users: React.FC = () => {
       resetForm();
       loadData();
     } catch (err: any) {
-      toast.error(err.message || 'KullanÄ±cÄ± oluÅŸturulamadÄ±.');
+      toast.error(err.message || 'Kullanıcı oluşturulamadı.');
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      toast.error('Ad ve Soyad alanlarÄ± boÅŸ bÄ±rakÄ±lamaz.');
+      toast.error('Ad ve Soyad alanları boş bırakılamaz.');
       return;
     }
     if (!selectedUser) return;
@@ -161,23 +161,23 @@ const Users: React.FC = () => {
         isActive: formData.isActive,
         phoneNumber: formData.phoneNumber
       });
-      toast.success('KullanÄ±cÄ± gÃ¼ncellendi.');
+      toast.success('Kullanıcı güncellendi.');
       setIsEditModalOpen(false);
       resetForm();
       loadData();
     } catch (err: any) {
-      toast.error(err.message || 'KullanÄ±cÄ± gÃ¼ncellenemedi.');
+      toast.error(err.message || 'Kullanıcı güncellenemedi.');
     }
   };
 
   const deleteUser = async (id: string) => {
-    if (!window.confirm('Bu kullanÄ±cÄ±yÄ± silmek istediÄŸinize emin misiniz?')) return;
+    if (!window.confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
     try {
       await userService.delete(id);
-      toast.success('KullanÄ±cÄ± baÅŸarÄ±yla silindi.');
+      toast.success('Kullanıcı başarıyla silindi.');
       loadData();
     } catch (err: any) {
-      toast.error(err.message || 'KullanÄ±cÄ± silinemedi.');
+      toast.error(err.message || 'Kullanıcı silinemedi.');
     }
   };
 
@@ -279,15 +279,15 @@ const Users: React.FC = () => {
   return (
     <div className="flex flex-col h-full space-y-6">
       <PageHeader 
-        title="KullanÄ±cÄ± YÃ¶netimi" 
-        description="Sistemdeki tÃ¼m kullanÄ±cÄ±larÄ± ve yetkilerini yÃ¶netin." 
-        action={{ label: "Yeni KullanÄ±cÄ±", onClick: () => { resetForm(); setIsAddModalOpen(true); } }}
+        title="Kullanıcı Yönetimi" 
+        description="Sistemdeki tüm kullanıcıları ve yetkilerini yönetin." 
+        action={{ label: "Yeni Kullanıcı", onClick: () => { resetForm(); setIsAddModalOpen(true); } }}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
         <Card className="p-5 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">Toplam KullanÄ±cÄ±</p>
+            <p className="text-sm font-medium text-slate-500">Toplam Kullanıcı</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{totalUsersCount}</p>
           </div>
           <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
@@ -336,7 +336,7 @@ const Users: React.FC = () => {
           </div>
           <div className="w-full md:w-48">
             <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-              <option value="All">TÃ¼m KullanÄ±cÄ±lar</option>
+              <option value="All">Tüm Kullanıcılar</option>
               <option value="Admin">Admin</option>
               <option value="Technician">Teknisyen</option>
               <option value="User">User</option>
@@ -344,7 +344,7 @@ const Users: React.FC = () => {
           </div>
           <div className="w-full md:w-48">
             <Select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
-              <option value="All">TÃ¼m Departmanlar</option>
+              <option value="All">Tüm Departmanlar</option>
               {departments.map(d => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
@@ -356,7 +356,7 @@ const Users: React.FC = () => {
           {isLoading ? (
             <div className="p-6"><TableSkeleton rows={5} /></div>
           ) : displayedUsers.length === 0 ? (
-            <div className="p-6"><EmptyState title="KullanÄ±cÄ± Yok" description="Kriterlere uygun kullanÄ±cÄ± bulunmuyor." /></div>
+            <div className="p-6"><EmptyState title="Kullanıcı Yok" description="Kriterlere uygun kullanıcı bulunmuyor." /></div>
           ) : (
             <Table>
               <TableHeader>
@@ -374,7 +374,7 @@ const Users: React.FC = () => {
                   <TableHead className="cursor-pointer group" onClick={() => handleSort('isActive')}>
                     <div className="flex items-center gap-2">Durum {renderSortIndicator('isActive')}</div>
                   </TableHead>
-                  <TableHead className="text-right">Ä°ÅŸlemler</TableHead>
+                  <TableHead className="text-right">İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -385,7 +385,7 @@ const Users: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant="slate">{user.departmentName || 'AtanmadÄ±'}</Badge>
+                      <Badge variant="slate">{user.departmentName || 'Atanmadı'}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.roles.includes('Admin') ? 'blue' : user.roles.includes('Technician') ? 'emerald' : 'slate'}>
@@ -403,7 +403,7 @@ const Users: React.FC = () => {
                           variant="ghost" 
                           size="sm" 
                           onClick={() => openEditModal(user)}
-                          title="DÃ¼zenle"
+                          title="Düzenle"
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -428,7 +428,7 @@ const Users: React.FC = () => {
       </Card>
 
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}>
-        <ModalHeader title={isAddModalOpen ? 'Yeni KullanÄ±cÄ± Ekle' : 'KullanÄ±cÄ±yÄ± DÃ¼zenle'} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} />
+        <ModalHeader title={isAddModalOpen ? 'Yeni Kullanıcı Ekle' : 'Kullanıcıyı Düzenle'} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} />
         <form onSubmit={isAddModalOpen ? handleAddSubmit : handleEditSubmit} className="flex flex-col h-full">
           <ModalContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -445,7 +445,7 @@ const Users: React.FC = () => {
                   label="Telefon" 
                   type="tel" 
                   pattern="[0-9]{10}" 
-                  title="10 haneli telefon numarasÄ±nÄ± baÅŸÄ±nda sÄ±fÄ±r olmadan giriniz." 
+                  title="10 haneli telefon numarasını başında sıfır olmadan giriniz." 
                   placeholder="5551234567" 
                   maxLength={10}
                   value={formData.phoneNumber?.replace('+90', '') || ''} 
@@ -458,16 +458,16 @@ const Users: React.FC = () => {
             </div>
 
             <Select label="Departman" value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})}>
-              <option value="">-- Departman SeÃ§in --</option>
+              <option value="">-- Departman Seçin --</option>
               {departments.map(d => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </Select>
 
             <Select label="Yetki (Rol)" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-              <option value="User">KullanÄ±cÄ± (User)</option>
-              <option value="Technician">Teknisyen/OperatÃ¶r (Technician)</option>
-              <option value="Admin">YÃ¶netici (Admin)</option>
+              <option value="User">Kullanıcı (User)</option>
+              <option value="Technician">Teknisyen/Operatör (Technician)</option>
+              <option value="Admin">Yönetici (Admin)</option>
             </Select>
 
             {isEditModalOpen && (
@@ -478,8 +478,8 @@ const Users: React.FC = () => {
             )}
           </ModalContent>
           <ModalFooter>
-            <Button type="button" variant="ghost" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}>Ä°ptal</Button>
-            <Button type="submit" variant="primary">{isAddModalOpen ? 'OluÅŸtur' : 'Kaydet'}</Button>
+            <Button type="button" variant="ghost" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}>İptal</Button>
+            <Button type="submit" variant="primary">{isAddModalOpen ? 'Oluştur' : 'Kaydet'}</Button>
           </ModalFooter>
         </form>
       </Modal>

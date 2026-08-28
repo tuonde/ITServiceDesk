@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { deviceService } from '../services/deviceService';
 import { deviceCategoryService } from '../services/deviceCategoryService';
 import { departmentService } from '../services/departmentService';
@@ -70,7 +70,7 @@ const Inventory: React.FC = () => {
       setUsers((usrs.data || []).filter(u => u.isActive === true));
     } catch (error) {
       console.error(error);
-      toast.error('Veriler yÃ¼klenirken hata oluÅŸtu');
+      toast.error('Veriler yüklenirken hata oluştu');
     } finally {
       setIsLoading(false);
     }
@@ -84,8 +84,8 @@ const Inventory: React.FC = () => {
       setIsHistoryLoading(true);
       const res = await ticketService.getByDeviceId(deviceId);
       setDeviceHistory(res || []);
-    } catch {
-      toast.error("GeÃ§miÅŸ yÃ¼klenemedi");
+    } catch (error) {
+      toast.error("Geçmiş yüklenemedi");
     } finally {
       setIsHistoryLoading(false);
     }
@@ -123,12 +123,12 @@ const Inventory: React.FC = () => {
   };
 
   const toTrEng = (str: string) => {
-    return str.replace(/Ä±/g, 'i').replace(/Ä°/g, 'I')
-      .replace(/ÄŸ/g, 'g').replace(/Ä/g, 'G')
-      .replace(/Ã¼/g, 'u').replace(/Ãœ/g, 'U')
-      .replace(/ÅŸ/g, 's').replace(/Å/g, 'S')
-      .replace(/Ã¶/g, 'o').replace(/Ã–/g, 'O')
-      .replace(/Ã§/g, 'c').replace(/Ã‡/g, 'C')
+    return str.replace(/ı/g, 'i').replace(/İ/g, 'I')
+      .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+      .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+      .replace(/ş/g, 's').replace(/Ş/g, 'S')
+      .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+      .replace(/ç/g, 'c').replace(/Ç/g, 'C')
       .toUpperCase();
   };
 
@@ -181,26 +181,26 @@ const Inventory: React.FC = () => {
     try {
       if (selectedDevice) {
         await deviceService.update(selectedDevice.id, { id: selectedDevice.id, ...formData });
-        toast.success('Cihaz baÅŸarÄ±yla gÃ¼ncellendi');
+        toast.success('Cihaz başarıyla güncellendi');
       } else {
         await deviceService.create(formData);
         toast.success('Yeni cihaz eklendi');
       }
       setIsModalOpen(false);
       loadData();
-    } catch {
-      toast.error('Bir hata oluÅŸtu');
+    } catch (error) {
+      toast.error('Bir hata oluştu');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Bu cihazÄ± silmek istediÄŸinize emin misiniz?')) {
+    if (window.confirm('Bu cihazı silmek istediğinize emin misiniz?')) {
       try {
         await deviceService.delete(id);
         toast.success('Cihaz silindi');
         loadData();
-      } catch {
-        toast.error('Hata oluÅŸtu');
+      } catch (error) {
+        toast.error('Hata oluştu');
       }
     }
   };
@@ -222,8 +222,8 @@ const Inventory: React.FC = () => {
   const getStatusBadge = (status: DeviceStatus) => {
     switch (status) {
       case DeviceStatus.Active: return <Badge variant="emerald">Aktif</Badge>;
-      case DeviceStatus.Faulty: return <Badge variant="rose">ArÄ±zalÄ±</Badge>;
-      case DeviceStatus.Maintenance: return <Badge variant="amber">BakÄ±mda</Badge>;
+      case DeviceStatus.Faulty: return <Badge variant="rose">Arızalı</Badge>;
+      case DeviceStatus.Maintenance: return <Badge variant="amber">Bakımda</Badge>;
       case DeviceStatus.Storage: return <Badge variant="slate">Depoda</Badge>;
       default: return null;
     }
@@ -232,7 +232,7 @@ const Inventory: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full space-y-6">
-        <PageHeader title="Envanter YÃ¶netimi" description="Sistemdeki tÃ¼m cihazlarÄ±nÄ±zÄ± yÃ¶netin ve durumlarÄ±nÄ± takip edin." />
+        <PageHeader title="Envanter Yönetimi" description="Sistemdeki tüm cihazlarınızı yönetin ve durumlarını takip edin." />
         <Card className="flex-1 overflow-hidden p-0">
           <TableSkeleton rows={5} />
         </Card>
@@ -243,8 +243,8 @@ const Inventory: React.FC = () => {
   return (
     <div className="flex flex-col h-full space-y-6">
       <PageHeader 
-        title="Envanter YÃ¶netimi" 
-        description="Sistemdeki tÃ¼m cihazlarÄ±nÄ±zÄ± yÃ¶netin ve durumlarÄ±nÄ± takip edin." 
+        title="Envanter Yönetimi" 
+        description="Sistemdeki tüm cihazlarınızı yönetin ve durumlarını takip edin." 
         action={{ label: "Yeni Cihaz", onClick: () => openModal() }}
       />
 
@@ -260,7 +260,7 @@ const Inventory: React.FC = () => {
         </Card>
         <Card className="p-5 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">Aktif KullanÄ±mda</p>
+            <p className="text-sm font-medium text-slate-500">Aktif Kullanımda</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{activeCount}</p>
           </div>
           <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
@@ -269,7 +269,7 @@ const Inventory: React.FC = () => {
         </Card>
         <Card className="p-5 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">ArÄ±zalÄ± / BakÄ±mda</p>
+            <p className="text-sm font-medium text-slate-500">Arızalı / Bakımda</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{faultCount}</p>
           </div>
           <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600">
@@ -278,7 +278,7 @@ const Inventory: React.FC = () => {
         </Card>
         <Card className="p-5 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">BoÅŸta / Depoda</p>
+            <p className="text-sm font-medium text-slate-500">Boşta / Depoda</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">{storageCount}</p>
           </div>
           <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
@@ -292,7 +292,7 @@ const Inventory: React.FC = () => {
           <div className="flex-1 min-w-[200px]">
             <Input
               type="text"
-              placeholder="Cihaz kodu veya adÄ± ara..."
+              placeholder="Cihaz kodu veya adı ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full"
@@ -303,10 +303,10 @@ const Inventory: React.FC = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value === 'All' ? 'All' : Number(e.target.value) as DeviceStatus)}
             >
-              <option value="All">TÃ¼m Cihazlar</option>
+              <option value="All">Tüm Cihazlar</option>
               <option value={DeviceStatus.Active}>Aktif</option>
-              <option value={DeviceStatus.Faulty}>ArÄ±zalÄ±</option>
-              <option value={DeviceStatus.Maintenance}>BakÄ±mda</option>
+              <option value={DeviceStatus.Faulty}>Arızalı</option>
+              <option value={DeviceStatus.Maintenance}>Bakımda</option>
               <option value={DeviceStatus.Storage}>Depoda</option>
             </Select>
           </div>
@@ -315,7 +315,7 @@ const Inventory: React.FC = () => {
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
             >
-              <option value="All">TÃ¼m Departmanlar</option>
+              <option value="All">Tüm Departmanlar</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
           </div>
@@ -326,18 +326,18 @@ const Inventory: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Cihaz Kodu</TableHead>
-                <TableHead>Cihaz AdÄ± / Modeli</TableHead>
+                <TableHead>Cihaz Adı / Modeli</TableHead>
                 <TableHead>Kategori</TableHead>
                 <TableHead>Konum</TableHead>
                 <TableHead>Durum</TableHead>
-                <TableHead className="text-right">Ä°ÅŸlemler</TableHead>
+                <TableHead className="text-right">İşlemler</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredDevices.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-64">
-                     <EmptyState title="Cihaz BulunamadÄ±" description="Arama kriterlerinize uygun cihaz bulunmuyor." />
+                     <EmptyState title="Cihaz Bulunamadı" description="Arama kriterlerinize uygun cihaz bulunmuyor." />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -353,7 +353,7 @@ const Inventory: React.FC = () => {
                         <Button
                           variant="ghost" size="sm"
                           onClick={(e) => { e.stopPropagation(); openModal(device); }}
-                          title="DÃ¼zenle"
+                          title="Düzenle"
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -377,7 +377,7 @@ const Inventory: React.FC = () => {
       </Card>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalHeader title={selectedDevice ? 'Cihaz DÃ¼zenle' : 'Yeni Cihaz'} onClose={() => setIsModalOpen(false)} />
+        <ModalHeader title={selectedDevice ? 'Cihaz Düzenle' : 'Yeni Cihaz'} onClose={() => setIsModalOpen(false)} />
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <ModalContent className="space-y-4">
             {selectedDevice && (
@@ -390,7 +390,7 @@ const Inventory: React.FC = () => {
             )}
             <Input 
               required 
-              label="Cihaz AdÄ± / Modeli" 
+              label="Cihaz Adı / Modeli" 
               value={formData.name} 
               onChange={e => setFormData({ ...formData, name: e.target.value })} 
             />
@@ -399,7 +399,7 @@ const Inventory: React.FC = () => {
               <label className="block text-sm font-semibold text-slate-700 mb-1">Kategori</label>
               <CreatableSelect
                 isClearable
-                placeholder="Kategori SeÃ§in veya YazÄ±n..."
+                placeholder="Kategori Seçin veya Yazın..."
                 options={categories.map(c => ({ value: c.id, label: c.name }))}
                 value={formData.categoryId ? { value: formData.categoryId, label: categories.find(c => c.id === formData.categoryId)?.name } : null}
                 onChange={async (newValue: any, actionMeta: any) => {
@@ -409,14 +409,14 @@ const Inventory: React.FC = () => {
                       setCategories(prev => [...prev, newCat]);
                       setFormData({ ...formData, categoryId: newCat.id });
                       toast.success('Yeni kategori eklendi');
-                    } catch {
-                      toast.error('Kategori oluÅŸturulamadÄ±');
+                    } catch (e) {
+                      toast.error('Kategori oluşturulamadı');
                     }
                   } else {
                     setFormData({ ...formData, categoryId: newValue ? newValue.value : '' });
                   }
                 }}
-                formatCreateLabel={(inputValue) => `"${inputValue}" - yeni kategori oluÅŸtur`}
+                formatCreateLabel={(inputValue) => `"${inputValue}" - yeni kategori oluştur`}
                 classNamePrefix="react-select"
                 styles={{
                   control: (base, state) => ({
@@ -465,7 +465,7 @@ const Inventory: React.FC = () => {
                 value={formData.assignedUserId || ''} 
                 onChange={e => setFormData({ ...formData, assignedUserId: e.target.value || null })}
               >
-                <option value="">-- Zimmet Yok (Ortak KullanÄ±m) --</option>
+                <option value="">-- Zimmet Yok (Ortak Kullanım) --</option>
                 {users.filter(u => u.departmentId === formData.departmentId).map(u => (
                   <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
                 ))}
@@ -478,13 +478,13 @@ const Inventory: React.FC = () => {
               onChange={e => setFormData({ ...formData, status: Number(e.target.value) as DeviceStatus })}
             >
               <option value={DeviceStatus.Active}>Aktif</option>
-              <option value={DeviceStatus.Faulty}>ArÄ±zalÄ±</option>
-              <option value={DeviceStatus.Maintenance}>BakÄ±mda</option>
+              <option value={DeviceStatus.Faulty}>Arızalı</option>
+              <option value={DeviceStatus.Maintenance}>Bakımda</option>
               <option value={DeviceStatus.Storage}>Depoda</option>
             </Select>
           </ModalContent>
           <ModalFooter>
-             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Ä°ptal</Button>
+             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>İptal</Button>
              <Button type="submit" variant="primary">Kaydet</Button>
           </ModalFooter>
         </form>
@@ -494,7 +494,7 @@ const Inventory: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in" onClick={() => setIsDrawerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up relative" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-xl font-bold text-slate-800">Cihaz DetaylarÄ±</h2>
+              <h2 className="text-xl font-bold text-slate-800">Cihaz Detayları</h2>
               <button onClick={() => setIsDrawerOpen(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -513,8 +513,8 @@ const Inventory: React.FC = () => {
                   <div className="flex justify-between"><span className="text-slate-500">Kategori:</span><span className="font-medium text-slate-700">{selectedDevice.categoryName}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500">Departman & Zimmet:</span>
                     <div className="flex flex-col items-end">
-                      <span className="font-medium text-slate-700">{selectedDevice.departmentName || <span className="text-slate-400">AtanmamÄ±ÅŸ</span>}</span>
-                      {selectedDevice.assignedUserName && <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mt-1">ğŸ‘¤ {selectedDevice.assignedUserName}</span>}
+                      <span className="font-medium text-slate-700">{selectedDevice.departmentName || <span className="text-slate-400">Atanmamış</span>}</span>
+                      {selectedDevice.assignedUserName && <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mt-1">👤 {selectedDevice.assignedUserName}</span>}
                     </div>
                   </div>
                 </div>
@@ -523,7 +523,7 @@ const Inventory: React.FC = () => {
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  ArÄ±za GeÃ§miÅŸi ({deviceHistory.length})
+                  Arıza Geçmişi ({deviceHistory.length})
                 </h4>
                 
                 <div className="flex gap-2">
@@ -532,32 +532,32 @@ const Inventory: React.FC = () => {
                     onChange={e => setHistoryStatusFilter(e.target.value === 'All' ? 'All' : Number(e.target.value) as TicketStatus)}
                     className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 outline-none"
                   >
-                    <option value="All">TÃ¼m Durumlar</option>
-                    <option value={TicketStatus.Open}>AÃ§Ä±k</option>
-                    <option value={TicketStatus.InProgress}>Ä°ÅŸlemde</option>
-                    <option value={TicketStatus.WaitingForUser}>KullanÄ±cÄ± Bekleniyor</option>
-                    <option value={TicketStatus.Resolved}>Ã‡Ã¶zÃ¼ldÃ¼</option>
-                    <option value={TicketStatus.Closed}>KapalÄ±</option>
+                    <option value="All">Tüm Durumlar</option>
+                    <option value={TicketStatus.Open}>Açık</option>
+                    <option value={TicketStatus.InProgress}>İşlemde</option>
+                    <option value={TicketStatus.WaitingForUser}>Kullanıcı Bekleniyor</option>
+                    <option value={TicketStatus.Resolved}>Çözüldü</option>
+                    <option value={TicketStatus.Closed}>Kapalı</option>
                   </select>
                   <select 
                     value={historyPriorityFilter} 
                     onChange={e => setHistoryPriorityFilter(e.target.value === 'All' ? 'All' : Number(e.target.value))}
                     className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 outline-none"
                   >
-                    <option value="All">TÃ¼m Ã–ncelikler</option>
-                    <option value={1}>DÃ¼ÅŸÃ¼k</option>
+                    <option value="All">Tüm Öncelikler</option>
+                    <option value={1}>Düşük</option>
                     <option value={2}>Orta</option>
-                    <option value={3}>YÃ¼ksek</option>
+                    <option value={3}>Yüksek</option>
                     <option value={4}>Kritik</option>
                   </select>
                 </div>
               </div>
               <div className="overflow-y-auto flex-1 custom-scrollbar pr-2">
                 {isHistoryLoading ? (
-                  <div className="text-center py-8 text-slate-500 text-sm">YÃ¼kleniyor...</div>
+                  <div className="text-center py-8 text-slate-500 text-sm">Yükleniyor...</div>
                 ) : deviceHistory.length === 0 ? (
                   <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                    <p className="text-slate-500 text-sm">Bu cihaza ait arÄ±za kaydÄ± bulunmuyor.</p>
+                    <p className="text-slate-500 text-sm">Bu cihaza ait arıza kaydı bulunmuyor.</p>
                   </div>
                 ) : (
                   <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
@@ -579,7 +579,7 @@ const Inventory: React.FC = () => {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed
                               ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
                               }`}>
-                              {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? 'Ã‡Ã¶zÃ¼ldÃ¼' : 'AÃ§Ä±k'}
+                              {ticket.status === TicketStatus.Resolved || ticket.status === TicketStatus.Closed ? 'Çözüldü' : 'Açık'}
                             </span>
                             <span className="text-xs text-slate-400 font-medium">{new Date(ticket.createdAt).toLocaleDateString('tr-TR')}</span>
                           </div>
@@ -592,7 +592,7 @@ const Inventory: React.FC = () => {
                     {deviceHistory.filter(t => historyStatusFilter === 'All' || t.status === historyStatusFilter)
                       .filter(t => historyPriorityFilter === 'All' || t.priority === historyPriorityFilter).length === 0 && (
                       <div className="text-center py-8 text-slate-500 text-sm">
-                        SeÃ§ilen filtrelere uygun arÄ±za bulunamadÄ±.
+                        Seçilen filtrelere uygun arıza bulunamadı.
                       </div>
                     )}
                   </div>
