@@ -42,51 +42,41 @@ public class SettingsController : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest(ApiResponse<string>.Fail("Geçersiz dosya."));
 
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".svg", ".webp" };
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
         if (!allowedExtensions.Contains(extension))
             return BadRequest(ApiResponse<string>.Fail("Desteklenmeyen dosya formatı. Sadece resim dosyaları kabul edilir."));
 
         // Magic bytes / Content check
-        if (extension != ".svg")
+        using (var stream = file.OpenReadStream())
+        using (var reader = new BinaryReader(stream))
         {
-            using (var stream = file.OpenReadStream())
-            using (var reader = new BinaryReader(stream))
+            var signatures = new Dictionary<string, List<byte[]>>
             {
-                var signatures = new Dictionary<string, List<byte[]>>
-                {
-                    { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-                    { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-                    { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
-                    { ".webp", new List<byte[]> { new byte[] { 0x52, 0x49, 0x46, 0x46 } } } // Riff
-                };
+                { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+                { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+                { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
+                { ".webp", new List<byte[]> { new byte[] { 0x52, 0x49, 0x46, 0x46 } } } // Riff
+            };
 
-                if (signatures.ContainsKey(extension))
-                {
-                    var fileSignatures = signatures[extension];
-                    var headerBytes = reader.ReadBytes(8);
-                    
-                    bool isMatch = fileSignatures.Any(sig => 
-                        headerBytes.Take(sig.Length).SequenceEqual(sig)
-                    );
+            if (signatures.ContainsKey(extension))
+            {
+                var fileSignatures = signatures[extension];
+                var headerBytes = reader.ReadBytes(8);
+                
+                bool isMatch = fileSignatures.Any(sig => 
+                    headerBytes.Take(sig.Length).SequenceEqual(sig)
+                );
 
-                    if (!isMatch)
-                    {
-                        return BadRequest(ApiResponse<string>.Fail("Geçersiz dosya içeriği (MIME Spoofing tespiti)."));
-                    }
+                if (!isMatch)
+                {
+                    return BadRequest(ApiResponse<string>.Fail("Geçersiz dosya içeriği (MIME Spoofing tespiti)."));
                 }
             }
         }
 
-        // Sunucu kök dizinini belirle
-        string webRootPath = _env.WebRootPath;
-        if (string.IsNullOrWhiteSpace(webRootPath))
-        {
-            webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        }
-
-        string uploadsFolder = Path.Combine(webRootPath, "uploads");
+        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "uploads");
         if (!Directory.Exists(uploadsFolder))
             Directory.CreateDirectory(uploadsFolder);
 
@@ -108,7 +98,7 @@ public class SettingsController : ControllerBase
         }
 
         // Cache-busting için time string ekleyelim
-        var url = $"/uploads/{uniqueFileName}?v={DateTime.UtcNow.Ticks}";
+        var url = $"/api/Settings/logo?v={DateTime.UtcNow.Ticks}";
         
         return Ok(ApiResponse<string>.Success(url, "Logo başarıyla yüklendi."));
     }
@@ -117,12 +107,7 @@ public class SettingsController : ControllerBase
     [AllowAnonymous]
     public IActionResult GetLogoUrl()
     {
-        string webRootPath = _env.WebRootPath;
-        if (string.IsNullOrWhiteSpace(webRootPath))
-        {
-            webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        }
-        string uploadsFolder = Path.Combine(webRootPath, "uploads");
+        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "uploads");
         
         if (Directory.Exists(uploadsFolder))
         {
@@ -130,13 +115,37 @@ public class SettingsController : ControllerBase
             if (existingLogos.Any())
             {
                 var file = existingLogos.First();
-                var extension = Path.GetExtension(file);
                 // Dosya son değiştirilme tarihini cache buster olarak kullan
                 var lastModified = System.IO.File.GetLastWriteTimeUtc(file).Ticks;
-                return Ok(ApiResponse<string>.Success($"/uploads/logo{extension}?v={lastModified}"));
+                return Ok(ApiResponse<string>.Success($"/api/Settings/logo?v={lastModified}"));
             }
         }
 
         return Ok(ApiResponse<string>.Success("")); // Logo yoksa boş string dön
+    }
+
+    [HttpGet("logo")]
+    [AllowAnonymous]
+    public IActionResult GetLogo()
+    {
+        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "uploads");
+        if (Directory.Exists(uploadsFolder))
+        {
+            var existingLogos = Directory.GetFiles(uploadsFolder, "logo.*");
+            if (existingLogos.Any())
+            {
+                var file = existingLogos.First();
+                var ext = Path.GetExtension(file).ToLowerInvariant();
+                var mimeType = ext switch
+                {
+                    ".png" => "image/png",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".webp" => "image/webp",
+                    _ => "application/octet-stream"
+                };
+                return PhysicalFile(file, mimeType);
+            }
+        }
+        return NotFound();
     }
 }
