@@ -328,8 +328,9 @@ using (var scope = app.Services.CreateScope())
                 var rolesList = userManager.GetRolesAsync(existingAdmin).GetAwaiter().GetResult();
                 if (!rolesList.Contains("Admin"))
                 {
-                    userManager.AddToRoleAsync(existingAdmin, "Admin").GetAwaiter().GetResult();
-                    Console.WriteLine($"Bootstrap Admin elevated existing user: {email}");
+                    var errorMsg = $"FATAL ERROR: Bootstrap admin email '{email}' already belongs to a non-admin user. Automatic role elevation is disabled for security reasons.";
+                    Console.WriteLine(errorMsg);
+                    throw new Exception(errorMsg);
                 }
                 else
                 {

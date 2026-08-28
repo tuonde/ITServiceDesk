@@ -100,4 +100,64 @@ public class BootstrapAdminTests
         
         await factory.DisposeAsync();
     }
+    
+    [Fact]
+    public async Task BootstrapAdmin_WhenEnabledAndUserExistsButNotAdmin_ShouldFailStartup()
+    {
+        // Arrange
+        var testEmail = $"user-{Guid.NewGuid()}@integration.local";
+        var testPassword = "BootstrapStrongPassword123!";
+
+        var factory = new CustomWebApplicationFactory();
+        await factory.InitializeAsync();
+
+        // 1. Create a regular user directly in the database
+        var setupFactory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    {"BootstrapAdmin:Enabled", "false"},
+                    {"DemoData:Enabled", "false"}
+                });
+            });
+        });
+
+        using (var setupScope = setupFactory.Services.CreateScope())
+        {
+            var userManager = setupScope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var regularUser = new AppUser
+            {
+                UserName = testEmail,
+                Email = testEmail,
+                FirstName = "Normal",
+                LastName = "User"
+            };
+            var result = await userManager.CreateAsync(regularUser, "TestStr0ngP@ssw0rd123!");
+            Assert.True(result.Succeeded);
+            await userManager.AddToRoleAsync(regularUser, "User");
+        }
+
+        // 2. Start the application with BootstrapAdmin enabled for the same email
+        var testFactory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    {"BootstrapAdmin:Enabled", "true"},
+                    {"BootstrapAdmin:Email", testEmail},
+                    {"BootstrapAdmin:Password", testPassword}
+                });
+            });
+        });
+
+        // Act & Assert
+        // Creating the client forces WebHost startup which should throw our custom exception.
+        var exception = Assert.ThrowsAny<Exception>(() => testFactory.CreateClient());
+        Assert.Contains("already belongs to a non-admin user", exception.Message);
+
+        await factory.DisposeAsync();
+    }
 }
